@@ -1,0 +1,89 @@
+{
+  "sourceType": "POSTGRES",
+  "metadataRefresh": {
+    "datasetDiscovery": true
+  },
+  "form": {
+    "tabs": [
+      {
+        "name": "General",
+        "isGeneral": true,
+        "sections": [
+          {
+            "name": "Connection",
+            "layout": "row",
+            "elements": [
+              {
+                "propName": "config.hostname",
+                "placeholder": "e.g.123.123.123.123",
+                "size": "half",
+                "validate": {
+                  "isRequired": true
+                }
+              },
+              {
+                "propName": "config.port",
+                "size": "half",
+                "validate": {
+                  "isRequired": true
+                }
+              },
+              {
+                "propName": "config.databaseName",
+                "size": "full",
+                "validate": {
+                  "isRequired": true
+                }
+              },
+              {
+                "propName": "config.useSsl",
+                "tooltip": "Encryption validation mode can be customized under Advanced Options > Encryption"
+              }
+            ]
+          },
+          {
+            "name": "Authentication",
+            "elements": [
+              {
+                "propName": "config.authenticationType"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Advanced Options",
+        "sections": [
+          {
+            "elements": [
+              {
+                "propName": "config.fetchSize",
+                "size": "half",
+                "tooltip": "Number of records to fetch at once.",
+                "help": {
+                  "position": "bottom",
+                  "text": "Set to 0 to have Dremio automatically decide."
+                }
+              },
+              {
+                "propName": "config.enableExternalQuery"
+              },
+              {
+                "propName": "config.useLegacyDialect"
+              }
+            ]
+          },
+          {
+            "name": "Encryption",
+            "elements": [
+              {
+                "propName": "config.encryptionValidationMode",
+                "tooltip": "In Postgres terminology for 'sslmode', these map to 'verify-full', 'verify-ca' and 'require' respectively. "
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

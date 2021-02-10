@@ -1,0 +1,15 @@
+Manifest-Version: 1.0
+Implementation-Title: Community - Storage Plugins - JDBC
+Implementation-Version: 13.0.0-202101272034330307-20fb9275
+Built-By: 
+Specification-Title: Community - Storage Plugins - JDBC
+Implementation-Vendor-Id: com.dremio.community.plugins
+Extension-Name: com.dremio
+Created-By: Apache Maven 3.6.3
+Build-Jdk: 1.8.0_242
+Specification-Version: 13.0
+Implementation-URL: https://github.com/dremio/dremio-oss/dremio-ce-paren
+ t/dremio-ce-parent-plugin/dremio-ce-jdbc-plugin-parent/dremio-ce-jdbc-p
+ lugin
+url: http://www.dremio.com
+

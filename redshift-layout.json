@@ -1,0 +1,65 @@
+{
+  "sourceType": "REDSHIFT",
+  "metadataRefresh": {
+    "datasetDiscovery": true
+  },
+  "form": {
+    "tabs": [
+      {
+        "name": "General",
+        "isGeneral": true,
+        "sections": [
+          {
+            "name": "Connection",
+            "elements": [
+              {
+                "propName": "config.connectionString",
+                "placeholder": "e.g. jdbc:redshift://123.123.123.123:5439/database",
+                "help": {
+                  "position": "bottom",
+                  "text": "Your JDBC connection URL can be found in AWS console"
+                },
+                "validate": {
+                  "isRequired": true
+                }
+              }
+            ]
+          },
+          {
+            "name": "Authentication",
+            "elements": [
+              {
+                "propName": "config.authenticationType"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Advanced Options",
+        "sections": [
+          {
+            "elements": [
+              {
+                "propName": "config.fetchSize",
+                "size": "half",
+                "value": "0",
+                "tooltip": "Number of records to fetch at once.",
+                "help": {
+                  "position": "bottom",
+                  "text": "Set to 0 to have Dremio automatically decide."
+                }
+              },
+              {
+                "propName": "config.enableExternalQuery"
+              },
+              {
+                "propName": "config.useLegacyDialect"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

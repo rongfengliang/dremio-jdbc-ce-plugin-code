@@ -1,0 +1,80 @@
+{
+  "sourceType": "MYSQL",
+  "metadataRefresh": {
+    "datasetDiscovery": true
+  },
+  "form": {
+    "tabs": [
+      {
+        "name": "General",
+        "isGeneral": true,
+        "sections": [
+          {
+            "name": "Connection",
+            "layout": "row",
+            "elements": [
+              {
+                "propName": "config.hostname",
+                "placeholder": "e.g.123.123.123.123",
+                "size": "half",
+                "validate": {
+                  "isRequired": true
+                }
+              },
+              {
+                "propName": "config.port",
+                "size": "half",
+                "validate": {
+                  "isRequired": true
+                }
+              },
+              {
+                "propName": "config.database"
+              }
+            ]
+          },
+          {
+            "name": "Authentication",
+            "elements": [
+              {
+                "propName": "config.authenticationType"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Advanced Options",
+        "sections": [
+          {
+            "elements": [
+              {
+                "propName": "config.showOnlyConnectionDatabase"
+              },
+              {
+                "propName": "config.netWriteTimeout",
+                "size": "half",
+                "tooltip": "Seconds to wait for data from the server before aborting the connection."
+              },
+              {
+                "propName": "config.fetchSize",
+                "size": "half",
+                "tooltip": "Number of records to fetch at once.",
+                "help": {
+                  "position": "bottom",
+                  "text": "Set to 0 to have Dremio automatically decide."
+                }
+              },
+              {
+                "propName": "config.enableExternalQuery"
+              },
+              {
+                "propName": "config.useLegacyDialect"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

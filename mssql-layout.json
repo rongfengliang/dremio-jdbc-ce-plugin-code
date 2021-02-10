@@ -1,0 +1,92 @@
+{
+  "sourceType": "MSSQL",
+  "metadataRefresh": {
+    "datasetDiscovery": true
+  },
+  "form": {
+    "tabs": [
+      {
+        "name": "General",
+        "isGeneral": true,
+        "sections": [
+          {
+            "name": "Connection",
+            "layout": "row",
+            "elements": [
+              {
+                "propName": "config.hostname",
+                "placeholder": "e.g.123.123.123.123",
+                "size": "half",
+                "validate": {
+                  "isRequired": true
+                }
+              },
+              {
+                "propName": "config.port",
+                "size": "half"
+              },
+              {
+                "propName": "config.database"
+              }
+            ]
+          },
+          {
+            "name": "Authentication",
+            "elements": [
+              {
+                "propName": "config.authenticationType"
+              }
+            ]
+          },
+          {
+            "propName": "config.useSsl",
+            "tooltip": "Encryption validation mode can be customized under Advanced Options > Encryption"
+          }
+        ]
+      },
+      {
+        "name": "Advanced Options",
+        "sections": [
+          {
+            "elements": [
+              {
+                "propName": "config.showOnlyConnectionDatabase"
+              },
+              {
+                "propName": "config.fetchSize",
+                "size": "half",
+                "tooltip": "Number of records to fetch at once.",
+                "help": {
+                  "position": "bottom",
+                  "text": "Set to 0 to have Dremio automatically decide."
+                }
+              },
+              {
+                "propName": "config.enableExternalQuery"
+              },
+              {
+                "propName": "config.useLegacyDialect"
+              }
+            ]
+          },
+          {
+            "name": "Encryption",
+            "elements": [
+              {
+                "uiType": "check_enabled_container",
+                "propName": "config.enableServerVerification",
+                "checkValue": true,
+                "tooltip": "Verify SQL Server instance when using encrypted connections.",
+                "container": {
+                  "propName": "config.hostnameOverride",
+                  "placeholder": "eg my.sqlserver.com",
+                  "tooltip": "Use this field to specify a hostname in the SSL certificate that differs from the server name. Leave this field blank if the hostname in the certificate matches the server name."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
