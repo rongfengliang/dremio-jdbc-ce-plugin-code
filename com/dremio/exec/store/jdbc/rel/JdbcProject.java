@@ -4,7 +4,7 @@ import com.dremio.exec.catalog.StoragePluginId;
 import com.dremio.exec.planner.common.JdbcRelImpl;
 import com.dremio.exec.planner.common.MoreRelOptUtil.ContainsRexVisitor;
 import com.dremio.exec.store.jdbc.conf.DialectConf;
-import com.dremio.exec.store.jdbc.legacy.JdbcDremioSqlDialect;
+import com.dremio.exec.store.jdbc.dialect.JdbcDremioSqlDialect;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -37,7 +37,7 @@ public class JdbcProject extends Project implements JdbcRelImpl {
       super(cluster, traitSet, input, projects, rowType);
       this.pluginId = pluginId;
       boolean foundContains = false;
-      Iterator var9 = this.getChildExps().iterator();
+      Iterator var9 = this.getProjects().iterator();
 
       while(var9.hasNext()) {
          RexNode rex = (RexNode)var9.next();

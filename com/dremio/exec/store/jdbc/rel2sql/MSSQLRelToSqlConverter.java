@@ -4,7 +4,7 @@ import com.dremio.common.rel2sql.DremioRelToSqlConverter.Builder;
 import com.dremio.common.rel2sql.DremioRelToSqlConverter.DremioContext;
 import com.dremio.common.rel2sql.DremioRelToSqlConverter.Result;
 import com.dremio.common.rel2sql.SqlImplementor.Clause;
-import com.dremio.exec.store.jdbc.legacy.JdbcDremioSqlDialect;
+import com.dremio.exec.store.jdbc.dialect.JdbcDremioSqlDialect;
 import com.dremio.exec.store.jdbc.rel.JdbcSort;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -72,7 +72,7 @@ public class MSSQLRelToSqlConverter extends JdbcDremioRelToSqlConverter {
    protected boolean canAddCollation(RelDataTypeField field) {
       if (field.getType().getSqlTypeName().getFamily() == SqlTypeFamily.CHARACTER) {
          String lowerCaseName = field.getName().toLowerCase(Locale.ROOT);
-         Map<String, String> properties = (Map)this.columnProperties.get(lowerCaseName);
+         Map<String, String> properties = (Map)this.getColumnProperties().get(lowerCaseName);
          if (properties != null) {
             String typeName = (String)properties.get("sourceTypeName");
             if (typeName != null) {

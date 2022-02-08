@@ -8,8 +8,7 @@ metadata:
   spec_version: 1.0-Dremio # The ARP definition version.
 syntax:
   identifier_quote: '"' # When this is '[', the closing quote is ']'.
-  allows_boolean_literal: true
-  map_boolean_literal_to_bit: true # Indicates if true/false literals should be mapped to 1/0.
+  map_boolean_to_bit_expr: true # Indicates if true/false literals should be mapped to 1/0.
   identifier_length_limit: 255
 data_types:
   # Types not mapped below are unsupported and columns of those types are hidden from all tables.

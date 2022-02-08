@@ -17,7 +17,7 @@ import com.dremio.exec.store.jdbc.JdbcFetcherProto.GetTableMetadataRequest;
 import com.dremio.exec.store.jdbc.JdbcFetcherProto.GetTableMetadataResponse;
 import com.dremio.exec.store.jdbc.JdbcFetcherProto.ListTableNamesRequest;
 import com.dremio.exec.store.jdbc.JdbcFetcherProto.GetStateResponse.Status;
-import com.dremio.exec.store.jdbc.legacy.JdbcDremioSqlDialect;
+import com.dremio.exec.store.jdbc.dialect.JdbcDremioSqlDialect;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -46,8 +46,8 @@ public class JdbcSchemaFetcherImpl implements JdbcSchemaFetcher {
    private static final Logger logger = LoggerFactory.getLogger(JdbcSchemaFetcherImpl.class);
    protected static final long BIG_ROW_COUNT = 1000000000L;
    protected static final Joiner PERIOD_JOINER = Joiner.on(".");
-   protected final JdbcPluginConfig config;
-   protected CloseableDataSource dataSource;
+   private final JdbcPluginConfig config;
+   private CloseableDataSource dataSource;
 
    public JdbcSchemaFetcherImpl(JdbcPluginConfig config) {
       this.config = config;
@@ -130,36 +130,35 @@ public class JdbcSchemaFetcherImpl implements JdbcSchemaFetcher {
          Connection connection = this.dataSource.getConnection();
          Throwable var3 = null;
 
+         Optional numRows;
          try {
             Statement statement = connection.createStatement();
             Throwable var5 = null;
 
             try {
                statement.setFetchSize(this.config.getFetchSize());
-               statement.setQueryTimeout(this.config.getQueryTimeout());
+               statement.setQueryTimeout(this.config.getRowCountQueryTimeout());
                ResultSet resultSet = statement.executeQuery(sql);
                Throwable var7 = null;
 
                try {
                   ResultSetMetaData meta = resultSet.getMetaData();
                   int colCount = meta.getColumnCount();
-                  Optional numRows;
                   if (colCount == 1 && resultSet.next()) {
                      numRows = resultSet.getLong(1);
                      Optional var12;
                      if (resultSet.wasNull()) {
                         var12 = Optional.empty();
                         return var12;
-                     } else {
-                        logger.debug("Query `{}` returned {} rows.", sql, Long.valueOf((long)numRows));
-                        var12 = Optional.of(Long.valueOf((long)numRows));
-                        return var12;
                      }
-                  } else {
-                     logger.debug("Invalid results returned for `{}`, colCount = {}.", sql, colCount);
-                     numRows = Optional.empty();
-                     return numRows;
+
+                     logger.debug("Query `{}` returned {} rows.", sql, Long.valueOf((long)numRows));
+                     var12 = Optional.of(Long.valueOf((long)numRows));
+                     return var12;
                   }
+
+                  logger.debug("Invalid results returned for `{}`, colCount = {}.", sql, colCount);
+                  numRows = Optional.empty();
                } catch (Throwable var37) {
                   var7 = var37;
                   throw var37;
@@ -187,8 +186,10 @@ public class JdbcSchemaFetcherImpl implements JdbcSchemaFetcher {
             }
 
          }
+
+         return numRows;
       } catch (Exception var43) {
-         logger.warn("Took longer than {} seconds to execute query `{}`.", new Object[]{this.config.getQueryTimeout(), sql, var43});
+         logger.warn("Took longer than {} seconds to execute row count query `{}`.", new Object[]{this.config.getRowCountQueryTimeout(), sql, var43});
          return Optional.empty();
       }
    }
@@ -283,34 +284,34 @@ public class JdbcSchemaFetcherImpl implements JdbcSchemaFetcher {
             Connection connection = this.dataSource.getConnection();
             Throwable var2 = null;
 
-            List var4;
+            ImmutableList var26;
             try {
                DatabaseMetaData metaData = connection.getMetaData();
-               if (!supportsSchemasWithoutCatalogs(this.config.getDialect(), metaData)) {
-                  Builder<String> catalogs = ImmutableList.builder();
-                  logger.debug("Getting catalogs from JDBC source {}", this.config.getSourceName());
-                  ResultSet getCatalogsResultSet = metaData.getCatalogs();
-                  Throwable var6 = null;
-
-                  try {
-                     while(getCatalogsResultSet.next()) {
-                        catalogs.add(getCatalogsResultSet.getString(1));
-                     }
-                  } catch (Throwable var20) {
-                     var6 = var20;
-                     throw var20;
-                  } finally {
-                     if (getCatalogsResultSet != null) {
-                        $closeResource(var6, getCatalogsResultSet);
-                     }
-
-                  }
-
-                  ImmutableList var26 = catalogs.build();
-                  return var26;
+               if (supportsSchemasWithoutCatalogs(this.config.getDialect(), metaData)) {
+                  List var25 = getSchemas(metaData, (String)null, this.config, new ArrayList());
+                  return var25;
                }
 
-               var4 = getSchemas(metaData, (String)null, this.config, new ArrayList());
+               Builder<String> catalogs = ImmutableList.builder();
+               logger.debug("Getting catalogs from JDBC source {}", this.config.getSourceName());
+               ResultSet getCatalogsResultSet = metaData.getCatalogs();
+               Throwable var6 = null;
+
+               try {
+                  while(getCatalogsResultSet.next()) {
+                     catalogs.add(getCatalogsResultSet.getString(1));
+                  }
+               } catch (Throwable var20) {
+                  var6 = var20;
+                  throw var20;
+               } finally {
+                  if (getCatalogsResultSet != null) {
+                     $closeResource(var6, getCatalogsResultSet);
+                  }
+
+               }
+
+               var26 = catalogs.build();
             } catch (Throwable var22) {
                var2 = var22;
                throw var22;
@@ -321,7 +322,7 @@ public class JdbcSchemaFetcherImpl implements JdbcSchemaFetcher {
 
             }
 
-            return var4;
+            return var26;
          } catch (SQLException var24) {
             logger.error("Error getting catalogs", var24);
             throw new RuntimeException(StoragePluginUtils.generateSourceErrorMessage(this.config.getSourceName(), "Exception while fetching catalog information."), var24);
@@ -354,35 +355,31 @@ public class JdbcSchemaFetcherImpl implements JdbcSchemaFetcher {
       }
    }
 
-   private CanonicalizeTablePathResponse getDatasetHandleViaGetTables(CanonicalizeTablePathRequest request, Connection connection) throws SQLException {
+   protected CanonicalizeTablePathResponse getDatasetHandleViaGetTables(CanonicalizeTablePathRequest request, Connection connection) throws SQLException {
       DatabaseMetaData metaData = connection.getMetaData();
       JdbcSchemaFetcherImpl.FilterDescriptor filter = new JdbcSchemaFetcherImpl.FilterDescriptor(request, supportsCatalogsWithoutSchemas(this.config.getDialect(), metaData));
       ResultSet tablesResult = metaData.getTables(filter.catalogName, filter.schemaName, filter.tableName, (String[])null);
       Throwable var6 = null;
 
-      CanonicalizeTablePathResponse var10;
       try {
-         String currSchema;
-         do {
-            if (!tablesResult.next()) {
-               return CanonicalizeTablePathResponse.getDefaultInstance();
+         while(tablesResult.next()) {
+            String currSchema = tablesResult.getString(2);
+            if (Strings.isNullOrEmpty(currSchema) || !this.config.getHiddenSchemas().contains(currSchema)) {
+               com.dremio.exec.store.jdbc.JdbcFetcherProto.CanonicalizeTablePathResponse.Builder responseBuilder = CanonicalizeTablePathResponse.newBuilder();
+               String currCatalog = tablesResult.getString(1);
+               if (!Strings.isNullOrEmpty(currCatalog)) {
+                  responseBuilder.setCatalog(currCatalog);
+               }
+
+               if (!Strings.isNullOrEmpty(currSchema)) {
+                  responseBuilder.setSchema(currSchema);
+               }
+
+               responseBuilder.setTable(tablesResult.getString(3));
+               CanonicalizeTablePathResponse var10 = responseBuilder.build();
+               return var10;
             }
-
-            currSchema = tablesResult.getString(2);
-         } while(!Strings.isNullOrEmpty(currSchema) && this.config.getHiddenSchemas().contains(currSchema));
-
-         com.dremio.exec.store.jdbc.JdbcFetcherProto.CanonicalizeTablePathResponse.Builder responseBuilder = CanonicalizeTablePathResponse.newBuilder();
-         String currCatalog = tablesResult.getString(1);
-         if (!Strings.isNullOrEmpty(currCatalog)) {
-            responseBuilder.setCatalog(currCatalog);
          }
-
-         if (!Strings.isNullOrEmpty(currSchema)) {
-            responseBuilder.setSchema(currSchema);
-         }
-
-         responseBuilder.setTable(tablesResult.getString(3));
-         var10 = responseBuilder.build();
       } catch (Throwable var14) {
          var6 = var14;
          throw var14;
@@ -393,7 +390,7 @@ public class JdbcSchemaFetcherImpl implements JdbcSchemaFetcher {
 
       }
 
-      return var10;
+      return CanonicalizeTablePathResponse.getDefaultInstance();
    }
 
    private List<String> getEntities(CanonicalizeTablePathRequest request, String pluginName) {
@@ -423,40 +420,41 @@ public class JdbcSchemaFetcherImpl implements JdbcSchemaFetcher {
       PreparedStatement statement = connection.prepareStatement("SELECT * FROM " + this.getQuotedPath(trimmedList));
       Throwable var6 = null;
 
-      CanonicalizeTablePathResponse var10;
+      CanonicalizeTablePathResponse var8;
       try {
          ResultSetMetaData preparedMetadata = statement.getMetaData();
-         if (preparedMetadata.getColumnCount() <= 0) {
-            logger.debug("Table has no columns, query is in invalid");
-            CanonicalizeTablePathResponse var16 = CanonicalizeTablePathResponse.getDefaultInstance();
-            return var16;
-         }
-
-         com.dremio.exec.store.jdbc.JdbcFetcherProto.CanonicalizeTablePathResponse.Builder responseBuilder = CanonicalizeTablePathResponse.newBuilder();
-         String table;
-         if (supportsCatalogs(this.config.getDialect(), metaData)) {
-            table = preparedMetadata.getCatalogName(1);
-            if (!Strings.isNullOrEmpty(table)) {
-               responseBuilder.setCatalog(table);
+         if (preparedMetadata.getColumnCount() > 0) {
+            com.dremio.exec.store.jdbc.JdbcFetcherProto.CanonicalizeTablePathResponse.Builder responseBuilder = CanonicalizeTablePathResponse.newBuilder();
+            String table;
+            if (supportsCatalogs(this.config.getDialect(), metaData)) {
+               table = preparedMetadata.getCatalogName(1);
+               if (!Strings.isNullOrEmpty(table)) {
+                  responseBuilder.setCatalog(table);
+               }
             }
-         }
 
-         if (supportsSchemas(this.config.getDialect(), metaData)) {
-            table = preparedMetadata.getSchemaName(1);
-            if (!Strings.isNullOrEmpty(table)) {
-               responseBuilder.setSchema(table);
+            if (supportsSchemas(this.config.getDialect(), metaData)) {
+               table = preparedMetadata.getSchemaName(1);
+               if (!Strings.isNullOrEmpty(table)) {
+                  responseBuilder.setSchema(table);
+               }
             }
-         }
 
-         table = preparedMetadata.getTableName(1);
-         if (!Strings.isNullOrEmpty(table)) {
+            table = preparedMetadata.getTableName(1);
+            CanonicalizeTablePathResponse var10;
+            if (Strings.isNullOrEmpty(table)) {
+               logger.info("Unable to get table handle for {} via prepare, falling back to getTables.", this.getEntities(request, this.config.getSourceName()));
+               var10 = this.getDatasetHandleViaGetTables(request, connection);
+               return var10;
+            }
+
             responseBuilder.setTable(table);
             var10 = responseBuilder.build();
             return var10;
          }
 
-         logger.info("Unable to get table handle for {} via prepare, falling back to getTables.", this.getEntities(request, this.config.getSourceName()));
-         var10 = this.getDatasetHandleViaGetTables(request, connection);
+         logger.debug("Table has no columns, query is in invalid");
+         var8 = CanonicalizeTablePathResponse.getDefaultInstance();
       } catch (Throwable var14) {
          var6 = var14;
          throw var14;
@@ -467,11 +465,15 @@ public class JdbcSchemaFetcherImpl implements JdbcSchemaFetcher {
 
       }
 
-      return var10;
+      return var8;
    }
 
    public JdbcPluginConfig getConfig() {
       return this.config;
+   }
+
+   protected CloseableDataSource getDataSource() {
+      return this.dataSource;
    }
 
    public GetStateResponse getState(GetStateRequest getStateRequest) {
@@ -522,7 +524,7 @@ public class JdbcSchemaFetcherImpl implements JdbcSchemaFetcher {
    }
 
    public GetExternalQueryMetadataResponse getExternalQueryMetadata(GetExternalQueryMetadataRequest request) {
-      return JdbcExternalQueryMetadataUtility.getBatchSchema(this.dataSource, (JdbcDremioSqlDialect)this.config.getDialect(), request, this.config.getSourceName());
+      return JdbcExternalQueryMetadataUtility.getBatchSchema(this.dataSource, (JdbcDremioSqlDialect)this.config.getDialect(), request, this.config);
    }
 
    public GetTableMetadataResponse getTableMetadata(GetTableMetadataRequest request) {
@@ -739,10 +741,11 @@ public class JdbcSchemaFetcherImpl implements JdbcSchemaFetcher {
                ResultSet typesResult = metaData.getTableTypes();
                Throwable var3 = null;
 
-               String type;
+               String[] var13;
                try {
                   ArrayList types = Lists.newArrayList();
 
+                  String type;
                   while(typesResult.next()) {
                      type = typesResult.getString(1).trim();
                      if (!this.config.getHiddenTableTypes().contains(type)) {
@@ -750,12 +753,12 @@ public class JdbcSchemaFetcherImpl implements JdbcSchemaFetcher {
                      }
                   }
 
-                  if (!types.isEmpty()) {
-                     String[] var13 = (String[])types.toArray(new String[0]);
-                     return var13;
+                  if (types.isEmpty()) {
+                     type = null;
+                     return type;
                   }
 
-                  type = null;
+                  var13 = (String[])types.toArray(new String[0]);
                } catch (Throwable var10) {
                   var3 = var10;
                   throw var10;
@@ -766,7 +769,7 @@ public class JdbcSchemaFetcherImpl implements JdbcSchemaFetcher {
 
                }
 
-               return type;
+               return var13;
             } catch (SQLException var12) {
                JdbcSchemaFetcherImpl.logger.warn("Unable to retrieve list of table types.", var12);
                return null;

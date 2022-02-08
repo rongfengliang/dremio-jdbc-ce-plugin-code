@@ -4,7 +4,7 @@ import com.dremio.common.dialect.DremioSqlDialect;
 import com.dremio.exec.catalog.StoragePluginId;
 import com.dremio.exec.planner.common.JdbcRelImpl;
 import com.dremio.exec.store.jdbc.conf.DialectConf;
-import com.dremio.exec.store.jdbc.legacy.JdbcDremioSqlDialect;
+import com.dremio.exec.store.jdbc.dialect.JdbcDremioSqlDialect;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import java.util.Iterator;
@@ -25,12 +25,10 @@ import org.apache.calcite.util.ImmutableBitSet;
 public class JdbcAggregate extends Aggregate implements JdbcRelImpl {
    private final StoragePluginId pluginId;
 
-   public JdbcAggregate(RelOptCluster cluster, RelTraitSet traitSet, RelNode input, boolean indicator, ImmutableBitSet groupSet, List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls, StoragePluginId pluginId) throws InvalidRelException {
-      super(cluster, traitSet, input, indicator, groupSet, groupSets, aggCalls);
+   public JdbcAggregate(RelOptCluster cluster, RelTraitSet traitSet, RelNode input, ImmutableBitSet groupSet, List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls, StoragePluginId pluginId) throws InvalidRelException {
+      super(cluster, traitSet, input, groupSet, groupSets, aggCalls);
 
       assert this.groupSets.size() == 1 : "Grouping sets not supported";
-
-      assert !this.indicator;
 
       this.pluginId = pluginId;
       Object dialect;
@@ -41,25 +39,25 @@ public class JdbcAggregate extends Aggregate implements JdbcRelImpl {
          dialect = DremioSqlDialect.CALCITE;
       }
 
-      Iterator var12 = aggCalls.iterator();
+      Iterator var11 = aggCalls.iterator();
 
       AggregateCall aggCall;
       do {
-         if (!var12.hasNext()) {
+         if (!var11.hasNext()) {
             return;
          }
 
-         aggCall = (AggregateCall)var12.next();
+         aggCall = (AggregateCall)var11.next();
       } while(((DremioSqlDialect)dialect).supportsAggregateFunction(aggCall.getAggregation().getKind()));
 
       throw new InvalidRelException("cannot implement aggregate function " + aggCall.getAggregation());
    }
 
-   public JdbcAggregate copy(RelTraitSet traitSet, RelNode input, boolean indicator, ImmutableBitSet groupSet, List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
+   public JdbcAggregate copy(RelTraitSet traitSet, RelNode input, ImmutableBitSet groupSet, List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls) {
       try {
-         return new JdbcAggregate(this.getCluster(), traitSet, input, indicator, groupSet, groupSets, aggCalls, this.pluginId);
-      } catch (InvalidRelException var8) {
-         throw new AssertionError(var8);
+         return new JdbcAggregate(this.getCluster(), traitSet, input, groupSet, groupSets, aggCalls, this.pluginId);
+      } catch (InvalidRelException var7) {
+         throw new AssertionError(var7);
       }
    }
 
@@ -67,7 +65,7 @@ public class JdbcAggregate extends Aggregate implements JdbcRelImpl {
       RelNode input = this.getInput().accept(copier);
 
       try {
-         return new JdbcAggregate(copier.getCluster(), this.getTraitSet(), input, this.indicator, this.getGroupSet(), this.getGroupSets(), copier.copyOf(this.getAggCallList()), this.pluginId);
+         return new JdbcAggregate(copier.getCluster(), this.getTraitSet(), input, this.getGroupSet(), this.getGroupSets(), copier.copyOf(this.getAggCallList()), this.pluginId);
       } catch (InvalidRelException var4) {
          throw new AssertionError(var4);
       }
@@ -78,7 +76,7 @@ public class JdbcAggregate extends Aggregate implements JdbcRelImpl {
    }
 
    public RelNode revert(List<RelNode> revertedInputs, RelBuilder builder) {
-      return builder.push((RelNode)revertedInputs.get(0)).aggregate(builder.groupKey(this.groupSet, this.indicator, this.groupSets), this.aggCalls).build();
+      return builder.push((RelNode)revertedInputs.get(0)).aggregate(builder.groupKey(this.groupSet, this.groupSets), this.aggCalls).build();
    }
 
    public RelNode shortenAliases(Suggester suggester, Set<String> usedAliases) {
@@ -110,7 +108,7 @@ public class JdbcAggregate extends Aggregate implements JdbcRelImpl {
                   return this;
                }
 
-               return this.copy(this.getTraitSet(), this.input, this.indicator, this.getGroupSet(), this.getGroupSets(), aggCallBuilder.build());
+               return this.copy(this.getTraitSet(), this.input, this.getGroupSet(), this.getGroupSets(), aggCallBuilder.build());
             }
          }
       }

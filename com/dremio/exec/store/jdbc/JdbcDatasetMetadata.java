@@ -5,11 +5,11 @@ import com.dremio.exec.store.StoragePluginUtils;
 import com.dremio.exec.store.jdbc.JdbcFetcherProto.ColumnProperties;
 import com.dremio.exec.store.jdbc.JdbcFetcherProto.GetTableMetadataRequest;
 import com.dremio.exec.store.jdbc.JdbcFetcherProto.GetTableMetadataResponse;
+import com.dremio.exec.store.jdbc.dialect.JdbcDremioSqlDialect;
 import com.dremio.exec.store.jdbc.dialect.JdbcToFieldMapping;
 import com.dremio.exec.store.jdbc.dialect.SourceTypeDescriptor;
 import com.dremio.exec.store.jdbc.dialect.TableSourceTypeDescriptor;
 import com.dremio.exec.store.jdbc.dialect.TypeMapper;
-import com.dremio.exec.store.jdbc.legacy.JdbcDremioSqlDialect;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -72,12 +72,12 @@ public class JdbcDatasetMetadata {
    }
 
    private JdbcDremioSqlDialect getDialect() {
-      return (JdbcDremioSqlDialect)this.fetcher.config.getDialect();
+      return (JdbcDremioSqlDialect)this.fetcher.getConfig().getDialect();
    }
 
    private void apiColumnMetadata() {
       this.getColumnMetadata((connection, skippedColumnBuilder, propertiesBuilders) -> {
-         return this.getDialect().getDataTypeMapper().mapJdbcToArrowFields((sourceTypeDescriptor, shouldSkip) -> {
+         return this.getDialect().getDataTypeMapper(this.fetcher.getConfig()).mapJdbcToArrowFields((sourceTypeDescriptor, shouldSkip) -> {
             this.handleUnpushableColumn(skippedColumnBuilder, propertiesBuilders, sourceTypeDescriptor, shouldSkip);
          }, (colName, processor) -> {
             this.processColumnProperty(propertiesBuilders, colName, processor);
@@ -93,7 +93,7 @@ public class JdbcDatasetMetadata {
 
          List var7;
          try {
-            var7 = this.getDialect().getDataTypeMapper().mapJdbcToArrowFields((sourceTypeDescriptor, shouldSkip) -> {
+            var7 = this.getDialect().getDataTypeMapper(this.fetcher.getConfig()).mapJdbcToArrowFields((sourceTypeDescriptor, shouldSkip) -> {
                this.handleUnpushableColumn(skippedColumnBuilder, propertiesBuilders, sourceTypeDescriptor, shouldSkip);
             }, (colName, processor) -> {
                this.processColumnProperty(propertiesBuilders, colName, processor);
@@ -116,7 +116,7 @@ public class JdbcDatasetMetadata {
 
    private void getColumnMetadata(JdbcDatasetMetadata.MapFunction mapFields) {
       try {
-         Connection connection = this.fetcher.dataSource.getConnection();
+         Connection connection = this.fetcher.getDataSource().getConnection();
          Throwable var3 = null;
 
          try {
@@ -136,7 +136,7 @@ public class JdbcDatasetMetadata {
          }
 
       } catch (SQLException var12) {
-         throw StoragePluginUtils.message(UserException.dataReadError(var12), this.fetcher.config.getSourceName(), "Failed getting columns for %s.", new Object[]{this.fetcher.getQuotedPath(this.identifiers)}).build(logger);
+         throw StoragePluginUtils.message(UserException.dataReadError(var12), this.fetcher.getConfig().getSourceName(), "Failed getting columns for %s.", new Object[]{this.fetcher.getQuotedPath(this.identifiers)}).build(logger);
       }
    }
 

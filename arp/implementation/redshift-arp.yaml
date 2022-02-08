@@ -357,6 +357,23 @@ expressions:
     timezone_offset:
       enable: true
       format: "OF"
+  numeric_formats:
+    digit:
+      enable: true
+      format: "9"
+    zero_digit:
+      enable: true
+      format: "0"
+    decimal:
+      enable: true
+      format: "."
+    group_separator:
+      enable: true
+      format: ","
+    exponent_separator:
+      enable: false
+    quote_character:
+      format: '"'
   operators:
   # Custom Expressions
   - names:
@@ -377,13 +394,32 @@ expressions:
   - names:
     - "to_char"
     signatures:
-    # Numeric TO_CHAR variations are not added as Dremio format strings don't match Redshift.
     - args:
       - "date"
       - "varchar"
       return: "varchar"
     - args:
       - "timestamp"
+      - "varchar"
+      return: "varchar"
+    - args:
+      - "decimal"
+      - "varchar"
+      return: "varchar"
+    - args:
+      - "bigint"
+      - "varchar"
+      return: "varchar"
+    - args:
+      - "integer"
+      - "varchar"
+      return: "varchar"
+    - args:
+      - "double"
+      - "varchar"
+      return: "varchar"
+    - args:
+      - "float"
       - "varchar"
       return: "varchar"
   - names:
@@ -468,13 +504,13 @@ expressions:
       - "varchar"
       - "integer"
       return: "integer"
-      rewrite: "CASE WHEN {0} IS NULL OR {1} IS NULL OR {2} IS NULL THEN NULL WHEN STRPOS(SUBSTRING({1}, {2}), {0}) > 0 THEN CASE WHEN {2} >= 1 THEN STRPOS(SUBSTRING({1}, {2}), {0}) + {2} - 1 ELSE STRPOS({1}, {0}) END ELSE 0 END "
+      rewrite: "CASE WHEN {0} IS NULL OR {1} IS NULL OR {2} IS NULL THEN NULL WHEN STRPOS(SUBSTRING({1}, {2}), {0}) > 0 THEN CASE WHEN {2} >= 1 THEN STRPOS(SUBSTRING({1}, {2}), {0}) + {2} - 1 ELSE STRPOS({1}, {0}) END ELSE 0 END"
     - args:
       - "varchar"
       - "varchar"
       - "bigint"
       return: "integer"
-      rewrite: "CASE WHEN {0} IS NULL OR {1} IS NULL OR {2} IS NULL THEN NULL WHEN STRPOS(SUBSTRING({1}, {2}), {0}) > 0 THEN CASE WHEN {2} >= 1 THEN STRPOS(SUBSTRING({1}, {2}), {0}) + {2} - 1 ELSE STRPOS({1}, {0}) END ELSE 0 END "
+      rewrite: "CASE WHEN {0} IS NULL OR {1} IS NULL OR {2} IS NULL THEN NULL WHEN STRPOS(SUBSTRING({1}, {2}), {0}) > 0 THEN CASE WHEN {2} >= 1 THEN STRPOS(SUBSTRING({1}, {2}), {0}) + {2} - 1 ELSE STRPOS({1}, {0}) END ELSE 0 END"
   - names:
     - "pi"
     signatures:
@@ -1116,6 +1152,18 @@ expressions:
   - names:
     - "to_date"
     signatures:
+      - return: "date"
+        args:
+          - "date"
+        rewrite: "{0}"
+      - return: "date"
+        args:
+          - "timestamp"
+        rewrite: "CAST({0} AS DATE)"
+      - return: "date"
+        args:
+          - "varchar"
+        rewrite: "CAST({0} AS DATE)"
       - return: "timestamp"
         args:
           - "varchar"
@@ -1873,192 +1921,192 @@ expressions:
       - "boolean"
       - "boolean"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "varbinary"
       - "varbinary"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "date"
       - "date"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "integer"
       - "integer"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "bigint"
       - "bigint"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "integer"
       - "bigint"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "bigint"
       - "integer"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "double"
       - "double"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "double"
       - "integer"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "integer"
       - "double"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "bigint"
       - "double"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "double"
       - "bigint"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "time"
       - "time"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "timestamp"
       - "timestamp"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "varchar"
       - "varchar"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "varchar"
       - "integer"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "integer"
       - "varchar"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "varchar"
       - "bigint"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "bigint"
       - "varchar"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "varchar"
       - "double"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "double"
       - "varchar"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "varchar"
       - "timestamp"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} ~ ''^[0-9]+\\-[0-9][0-9]\\-[0-9][0-9]( [0-9]+:[0-9][0-9]:[0-9][0-9](\\.[0-9]+)?)?$'' AND {0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} ~ ''^[0-9]+\\-[0-9][0-9]\\-[0-9][0-9]( [0-9]+:[0-9][0-9]:[0-9][0-9](\\.[0-9]+)?)?$'' AND {0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "timestamp"
       - "varchar"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({1} ~ ''^[0-9]+\\-[0-9][0-9]\\-[0-9][0-9]( [0-9]+:[0-9][0-9]:[0-9][0-9](\\.[0-9]+)?)?$'' AND {0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({1} ~ ''^[0-9]+\\-[0-9][0-9]\\-[0-9][0-9]( [0-9]+:[0-9][0-9]:[0-9][0-9](\\.[0-9]+)?)?$'' AND {0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "varchar"
       - "time"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "time"
       - "varchar"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "varchar"
       - "date"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "date"
       - "varchar"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "boolean"
       - "varchar"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (LOWER({1}) ~ ''^([t1y]|yes|true|on)$'' AND {0}) OR (LOWER({1}) ~ ''^([f0n]|no|false|off)$'' AND NOT {0}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (LOWER({1}) ~ ''^([t1y]|yes|true|on)$'' AND {0}) OR (LOWER({1}) ~ ''^([f0n]|no|false|off)$'' AND NOT {0}) THEN 0 ELSE 1 END = 1"
     - args:
       - "varchar"
       - "boolean"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (LOWER({0}) ~ ''^([t1y]|yes|true|on)$'' AND {1}) OR (LOWER({0}) ~ ''^([f0n]|no|false|off)$'' AND NOT {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (LOWER({0}) ~ ''^([t1y]|yes|true|on)$'' AND {1}) OR (LOWER({0}) ~ ''^([f0n]|no|false|off)$'' AND NOT {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "float"
       - "float"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "float"
       - "integer"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "integer"
       - "float"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "float"
       - "bigint"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "bigint"
       - "float"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "float"
       - "double"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "double"
       - "float"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "float"
       - "varchar"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "varchar"
       - "float"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
   - names:
     - "is not distinct from"
     signatures:
@@ -2749,18 +2797,31 @@ expressions:
     - args:
       - "decimal"
       return: "decimal"
+      rewrite: "CEIL({0})"
     - args:
       - "bigint"
       return: "bigint"
+      rewrite: "CEIL({0})"
     - args:
       - "double"
       return: "double"
+      rewrite: "CEIL({0})"
+    - args:
+      - "double"
+      return: "bigint"
+      rewrite: "CEIL({0})"
+    - args:
+      - "float"
+      return: "bigint"
+      rewrite: "CEIL({0})"
     - args:
       - "float"
       return: "float"
+      rewrite: "CEIL({0})"
     - args:
       - "integer"
       return: "integer"
+      rewrite: "CEIL({0})"
   - names:
     - "cos"
     signatures:
@@ -2881,47 +2942,47 @@ expressions:
     #  - "double"
     #  - "double"
     #  return: "double"
-    #  rewrite: "CASE {1} WHEN 0 THEN NULL ELSE MOD({0}, {1}) END "
+    #  rewrite: "CASE {1} WHEN 0 THEN NULL ELSE MOD({0}, {1}) END"
     #- args:
     #  - "double"
     #  - "bigint"
     #  return: "double"
-    #  rewrite: "CASE {1} WHEN 0 THEN NULL ELSE MOD({0}, CAST({1} AS DECIMAL)) END "
+    #  rewrite: "CASE {1} WHEN 0 THEN NULL ELSE MOD({0}, CAST({1} AS DECIMAL)) END"
     #- args:
     #  - "integer"
     #  - "double"
     #  return: "double"
-    #  rewrite: "CASE {1} WHEN 0 THEN NULL ELSE MOD(CAST({0} AS DECIMAL), {1}) END "
+    #  rewrite: "CASE {1} WHEN 0 THEN NULL ELSE MOD(CAST({0} AS DECIMAL), {1}) END"
     - args:
       - "bigint"
       - "bigint"
       return: "bigint"
-      rewrite: "CASE {1} WHEN 0 THEN NULL ELSE MOD({0}, {1}) END "
+      rewrite: "CASE {1} WHEN 0 THEN NULL ELSE MOD({0}, {1}) END"
     - args:
       - "integer"
       - "integer"
       return: "integer"
-      rewrite: "CASE {1} WHEN 0 THEN NULL ELSE MOD({0}, {1}) END "
+      rewrite: "CASE {1} WHEN 0 THEN NULL ELSE MOD({0}, {1}) END"
     #- args:
     #  - "bigint"
     #  - "double"
     #  return: "double"
-    #  rewrite: "CASE {1} WHEN 0 THEN NULL ELSE MOD(CAST({0} AS DECIMAL), {1} END "
+    #  rewrite: "CASE {1} WHEN 0 THEN NULL ELSE MOD(CAST({0} AS DECIMAL), {1} END"
     - args:
       - "bigint"
       - "integer"
       return: "integer"
-      rewrite: "CASE {1} WHEN 0 THEN NULL ELSE MOD({0}, {1}) END "
+      rewrite: "CASE {1} WHEN 0 THEN NULL ELSE MOD({0}, {1}) END"
     #- args:
     #  - "double"
     #  - "integer"
     #  return: "double"
-    #  rewrite: "CASE {1} WHEN 0 THEN NULL ELSE MOD({0}, CAST({1} AS DECIMAL)) END "
+    #  rewrite: "CASE {1} WHEN 0 THEN NULL ELSE MOD({0}, CAST({1} AS DECIMAL)) END"
     - args:
       - "integer"
       - "bigint"
       return: "bigint"
-      rewrite: "CASE {1} WHEN 0 THEN NULL ELSE MOD({0}, {1}) END "
+      rewrite: "CASE {1} WHEN 0 THEN NULL ELSE MOD({0}, {1}) END"
   - names:
     - "power"
     - "pow"
@@ -3137,10 +3198,12 @@ expressions:
       return: "integer"
   - names:
     - "lower"
+    - "lcase"
     signatures:
     - args:
       - "varchar"
       return: "varchar"
+      rewrite: "LOWER({0})"
   - names:
     - "replace"
     signatures:
@@ -3183,10 +3246,12 @@ expressions:
       rewrite: "SUBSTRING({0} FROM {1})"
   - names:
     - "upper"
+    - "ucase"
     signatures:
     - args:
       - "varchar"
       return: "varchar"
+      rewrite: "UPPER({0})"
   variable_length_operators:
     - names:
         - concat

@@ -5,7 +5,7 @@ import com.dremio.exec.calcite.logical.JdbcCrel;
 import com.dremio.exec.catalog.StoragePluginId;
 import com.dremio.exec.planner.logical.ProjectRel;
 import com.dremio.exec.planner.logical.Rel;
-import com.dremio.exec.store.jdbc.legacy.JdbcDremioSqlDialect;
+import com.dremio.exec.store.jdbc.dialect.JdbcDremioSqlDialect;
 import com.dremio.exec.store.jdbc.rel.JdbcProject;
 import java.util.Iterator;
 import java.util.List;
@@ -40,19 +40,19 @@ public final class JdbcProjectRule extends JdbcUnaryConverterRule {
          StoragePluginId pluginId = crel.getPluginId();
          if (pluginId == null) {
             return true;
-         } else if (UnpushableTypeVisitor.hasUnpushableTypes(project, (List)project.getChildExps())) {
+         } else if (UnpushableTypeVisitor.hasUnpushableTypes(project, (List)project.getProjects())) {
             logger.debug("Project has expressions with types that are not pushable. Aborting pushdown.");
             return false;
          } else {
             JdbcConverterRule.RuleContext ruleContext = JdbcConverterRule.getRuleContext(pluginId, crel.getCluster().getRexBuilder());
             JdbcDremioSqlDialect dialect = getDialect(pluginId);
             boolean supportsBitLiteral = dialect.supportsLiteral(CompleteType.BIT);
-            Iterator var8 = project.getChildExps().iterator();
+            Iterator var8 = project.getProjects().iterator();
 
             RexNode node;
             do {
                if (!var8.hasNext()) {
-                  var8 = project.getChildExps().iterator();
+                  var8 = project.getProjects().iterator();
 
                   do {
                      if (!var8.hasNext()) {
@@ -72,7 +72,7 @@ public final class JdbcProjectRule extends JdbcUnaryConverterRule {
                }
 
                if (!supportsBitLiteral && dialect.hasBooleanLiteralOrRexCallReturnsBoolean(node, false)) {
-                  logger.debug("Dialect does not support booleans, and an expression which returned a boolean was projected.Aborting pushdown.");
+                  logger.debug("Dialect does not support booleans, and an expression which returned a boolean was projected. Aborting pushdown.");
                   return false;
                }
             } while(!SqlTypeName.DAY_INTERVAL_TYPES.contains(node.getType().getSqlTypeName()) && !SqlTypeName.YEAR_INTERVAL_TYPES.contains(node.getType().getSqlTypeName()));

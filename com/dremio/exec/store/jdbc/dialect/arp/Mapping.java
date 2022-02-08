@@ -125,7 +125,6 @@ public class Mapping {
 
             return SCALE;
          case NONE:
-            return NONE;
          default:
             return NONE;
          }

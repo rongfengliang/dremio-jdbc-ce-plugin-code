@@ -43,11 +43,9 @@ import com.dremio.exec.store.jdbc.JdbcFetcherProto.GetTableMetadataRequest;
 import com.dremio.exec.store.jdbc.JdbcFetcherProto.GetTableMetadataResponse;
 import com.dremio.exec.store.jdbc.JdbcFetcherProto.ListTableNamesRequest;
 import com.dremio.exec.store.jdbc.JdbcFetcherProto.CatalogOrSchemaExistsRequest.Builder;
-import com.dremio.exec.store.jdbc.legacy.JdbcDremioSqlDialect;
-import com.dremio.exec.store.jdbc.legacy.LegacyDialect;
+import com.dremio.exec.store.jdbc.dialect.JdbcDremioSqlDialect;
 import com.dremio.exec.store.jdbc.proto.JdbcReaderProto;
 import com.dremio.exec.store.jdbc.rel.JdbcPrel;
-import com.dremio.exec.tablefunctions.DremioCalciteResource;
 import com.dremio.exec.tablefunctions.ExternalQueryScanPrel;
 import com.dremio.service.namespace.NamespaceKey;
 import com.dremio.service.namespace.SourceState;
@@ -74,10 +72,7 @@ import javax.inject.Provider;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.Schema;
 import org.apache.arrow.vector.types.pojo.ArrowType.Null;
-import org.apache.calcite.runtime.CalciteContextException;
 import org.apache.calcite.schema.Function;
-import org.apache.calcite.sql.SqlUtil;
-import org.apache.calcite.sql.parser.SqlParserPos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,7 +88,7 @@ public class JdbcStoragePlugin implements StoragePlugin, SourceMetadata, Support
    private final Provider<StoragePluginId> pluginIdProvider;
    private final boolean enableComplexType;
    private final JdbcSchemaFetcher fetcher;
-   private JdbcDremioSqlDialect dialect;
+   private final JdbcDremioSqlDialect dialect;
    private boolean started = false;
 
    public JdbcStoragePlugin(JdbcPluginConfig config, JdbcSchemaFetcher fetcher, SabotConfig sabotConfig, Provider<StoragePluginId> pluginIdProvider, boolean enableComplexType) {
@@ -242,23 +237,11 @@ public class JdbcStoragePlugin implements StoragePlugin, SourceMetadata, Support
    }
 
    public List<Function> getFunctions(List<String> tableSchemaPath, SchemaConfig schemaConfig) {
-      String sourceName = this.getPluginId().getName();
-      if (this.config.allowExternalQuery()) {
-         return (List)SupportsExternalQuery.getExternalQueryFunction((query) -> {
-            return this.getExternalQuerySchema(query);
-         }, (schema) -> {
-            return CalciteArrowHelper.wrap(schema).toCalciteRecordType(SqlTypeFactoryImpl.INSTANCE, (f) -> {
-               return f.getType().getTypeID() != Null.TYPE_TYPE;
-            }, this.enableComplexType);
-         }, this.getPluginId(), tableSchemaPath).map(Collections::singletonList).orElse(Collections.emptyList());
-      } else {
-         String errorMsg = this.dialect instanceof LegacyDialect ? "External Query is not supported with legacy mode enabled on source" : "Permission denied to run External Query on source";
-         throw newValidationError(errorMsg, sourceName);
-      }
-   }
-
-   private static CalciteContextException newValidationError(String errorMsg, String sourceName) {
-      return SqlUtil.newContextException(SqlParserPos.ZERO, DremioCalciteResource.DREMIO_CALCITE_RESOURCE.externalQueryNotSupportedError(errorMsg + " <" + sourceName + ">"));
+      return (List)SupportsExternalQuery.getExternalQueryFunction(this::getExternalQuerySchema, (schema) -> {
+         return CalciteArrowHelper.wrap(schema).toCalciteRecordType(SqlTypeFactoryImpl.INSTANCE, (f) -> {
+            return f.getType().getTypeID() != Null.TYPE_TYPE;
+         }, this.enableComplexType);
+      }, this.getPluginId(), tableSchemaPath).map(Collections::singletonList).orElse(Collections.emptyList());
    }
 
    public PhysicalOperator getExternalQueryPhysicalOperator(PhysicalPlanCreator creator, ExternalQueryScanPrel prel, BatchSchema schema, String sql) {
@@ -334,7 +317,7 @@ public class JdbcStoragePlugin implements StoragePlugin, SourceMetadata, Support
    }
 
    class JdbcIteratorListing implements DatasetHandleListing {
-      final Set<CloseableIterator<CanonicalizeTablePathResponse>> references = new HashSet();
+      private final Set<CloseableIterator<CanonicalizeTablePathResponse>> references = new HashSet();
 
       public Iterator<DatasetHandle> iterator() {
          CloseableIterator<CanonicalizeTablePathResponse> iterator = JdbcStoragePlugin.this.fetcher.listTableNames(ListTableNamesRequest.newBuilder().build());

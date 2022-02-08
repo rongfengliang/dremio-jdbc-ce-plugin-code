@@ -3,34 +3,41 @@ package com.dremio.exec.store.jdbc.dialect;
 import com.dremio.common.expression.CompleteType;
 import com.dremio.exec.store.jdbc.ColumnPropertiesProcessors;
 import com.dremio.exec.store.jdbc.JdbcPluginConfig;
+import com.dremio.exec.store.jdbc.JdbcFetcherProto.CanonicalizeTablePathRequest;
+import com.dremio.exec.store.jdbc.JdbcFetcherProto.CanonicalizeTablePathResponse;
 import com.dremio.exec.store.jdbc.dialect.arp.ArpDialect;
 import com.dremio.exec.store.jdbc.dialect.arp.ArpTypeMapper;
 import com.dremio.exec.store.jdbc.dialect.arp.ArpYaml;
 import com.dremio.exec.store.jdbc.rel2sql.OracleRelToSqlConverter;
 import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.text.MessageFormat;
+import java.util.List;
+import java.util.Optional;
 import java.util.TimeZone;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlIdentifier;
-import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
-import org.apache.calcite.sql.dialect.OracleSqlDialect;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class OracleDialect extends ArpDialect {
    private static final int ORACLE_MAX_VARCHAR_LENGTH = 4000;
    private static final Integer ORACLE_MAX_IDENTIFIER_LENGTH = 30;
-   private final ArpTypeMapper typeMapper;
+   public static final String MAP_DATE_TO_TIMESTAMP = "MAP_DATE_TO_TIMESTAMP";
+   private static final String TIMESTAMP = "TIMESTAMP";
 
    public OracleDialect(ArpYaml yaml) {
       super(yaml);
-      this.typeMapper = new OracleDialect.OracleTypeMapper(yaml);
    }
 
    public SqlNode emulateNullDirection(SqlNode node, boolean nullsFirst, boolean desc) {
@@ -52,9 +59,9 @@ public final class OracleDialect extends ArpDialect {
          return new SqlDataTypeSpec(new SqlIdentifier(SqlTypeName.DECIMAL.name(), SqlParserPos.ZERO), 38, 0, (String)null, (TimeZone)null, SqlParserPos.ZERO);
       case TIME:
       case DATE:
-         return new SqlDataTypeSpec(new SqlIdentifier(OracleDialect.OracleKeyWords.TIMESTAMP.toString(), SqlParserPos.ZERO), -1, -1, (String)null, (TimeZone)null, SqlParserPos.ZERO) {
+         return new SqlDataTypeSpec(new SqlIdentifier("TIMESTAMP", SqlParserPos.ZERO), -1, -1, (String)null, (TimeZone)null, SqlParserPos.ZERO) {
             public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
-               writer.keyword(OracleDialect.OracleKeyWords.TIMESTAMP.toString());
+               writer.keyword("TIMESTAMP");
             }
          };
       default:
@@ -62,21 +69,12 @@ public final class OracleDialect extends ArpDialect {
       }
    }
 
-   public TypeMapper getDataTypeMapper() {
-      return this.typeMapper;
+   public TypeMapper getDataTypeMapper(JdbcPluginConfig config) {
+      return new OracleDialect.OracleTypeMapper(this.getYaml(), Boolean.parseBoolean((String)config.getGenericProperties().getOrDefault("MAP_DATE_TO_TIMESTAMP", Boolean.FALSE.toString())));
    }
 
    public boolean supportsAliasedValues() {
       return false;
-   }
-
-   public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-      if (call.getKind() == SqlKind.FLOOR && call.operandCount() == 2) {
-         OracleSqlDialect.DEFAULT.unparseCall(writer, call, leftPrec, rightPrec);
-      } else {
-         super.unparseCall(writer, call, leftPrec, rightPrec);
-      }
-
    }
 
    protected boolean allowsAs() {
@@ -95,13 +93,11 @@ public final class OracleDialect extends ArpDialect {
 
       queryBuilder.append(") WHERE SCH NOT IN ('%s')");
       String query = String.format(queryBuilder.toString(), Joiner.on("','").join(config.getHiddenSchemas()));
-      return new ArpDialect.ArpSchemaFetcher(query, config, true, false);
+      return new OracleDialect.OracleSchemaFetcher(query, config);
    }
 
    public boolean supportsLiteral(CompleteType type) {
-      if (CompleteType.BIT.equals(type)) {
-         return false;
-      } else if (!CompleteType.INT.equals(type) && !CompleteType.BIGINT.equals(type)) {
+      if (!CompleteType.INT.equals(type) && !CompleteType.BIGINT.equals(type)) {
          return CompleteType.DATE.equals(type) ? true : super.supportsLiteral(type);
       } else {
          return true;
@@ -110,6 +106,29 @@ public final class OracleDialect extends ArpDialect {
 
    public boolean supportsBooleanAggregation() {
       return false;
+   }
+
+   public boolean supportsRegexString(String regex) {
+      int index = 0;
+
+      while(-1 != (index = regex.indexOf(92, index))) {
+         if (index >= regex.length() - 1) {
+            return true;
+         }
+
+         char escaped = regex.charAt(index + 1);
+         if (Character.isLetter(escaped)) {
+            switch(escaped) {
+            case 'E':
+            case 'Q':
+               return false;
+            default:
+               ++index;
+            }
+         }
+      }
+
+      return true;
    }
 
    public boolean supportsSort(boolean isCollationEmpty, boolean isOffsetEmpty) {
@@ -121,8 +140,11 @@ public final class OracleDialect extends ArpDialect {
    }
 
    private static class OracleTypeMapper extends ArpTypeMapper {
-      public OracleTypeMapper(ArpYaml yaml) {
+      private final boolean mapDateToTimestamp;
+
+      public OracleTypeMapper(ArpYaml yaml, boolean mapDateToTimestamp) {
          super(yaml);
+         this.mapDateToTimestamp = mapDateToTimestamp;
       }
 
       protected boolean shouldIgnore(SourceTypeDescriptor column) {
@@ -147,6 +169,8 @@ public final class OracleDialect extends ArpDialect {
                if (null != addColumnPropertyCallback) {
                   addColumnPropertyCallback.addProperty(columnLabel, ColumnPropertiesProcessors.ENABLE_EXPLICIT_CAST);
                }
+            } else if (this.mapDateToTimestamp && "DATE".equals(colTypeName)) {
+               colTypeName = "TIMESTAMP";
             }
          }
 
@@ -154,8 +178,88 @@ public final class OracleDialect extends ArpDialect {
       }
    }
 
+   static class OracleSchemaFetcher extends ArpDialect.ArpSchemaFetcher {
+      private static final Logger logger = LoggerFactory.getLogger(OracleDialect.OracleSchemaFetcher.class);
+
+      public OracleSchemaFetcher(String query, JdbcPluginConfig config) {
+         super(query, config, true, false);
+      }
+
+      protected long getRowCount(List<String> tablePath) {
+         String sql = MessageFormat.format("SELECT NUM_ROWS FROM ALL_TAB_STATISTICS WHERE OWNER = {0} AND TABLE_NAME = {1} AND NUM_ROWS IS NOT NULL AND OBJECT_TYPE = ''TABLE'' AND STALE_STATS = ''NO''", this.getConfig().getDialect().quoteStringLiteral((String)tablePath.get(0)), this.getConfig().getDialect().quoteStringLiteral((String)tablePath.get(1)));
+         Optional<Long> estimate = this.executeQueryAndGetFirstLong(sql);
+         if (estimate.isPresent()) {
+            return (Long)estimate.get();
+         } else {
+            logger.debug("Row count estimate not detected for table {}. Retrying with count query.", this.getQuotedPath(tablePath));
+            return super.getRowCount(tablePath);
+         }
+      }
+
+      protected CanonicalizeTablePathResponse getDatasetHandleViaGetTables(CanonicalizeTablePathRequest request, Connection connection) throws SQLException {
+         StringBuilder tblBuilder = new StringBuilder(this.getQuery());
+         tblBuilder.append(" AND NME = '%s'");
+         String tblQuery;
+         if (Strings.isNullOrEmpty(request.getCatalogOrSchema())) {
+            tblQuery = String.format(tblBuilder.toString(), request.getTable());
+         } else {
+            tblBuilder.append(" AND SCH LIKE '%s'");
+            tblQuery = String.format(tblBuilder.toString(), request.getTable(), request.getCatalogOrSchema());
+         }
+
+         Statement stmt = connection.createStatement();
+         Throwable var6 = null;
+
+         Object var9;
+         try {
+            ResultSet result = stmt.executeQuery(tblQuery);
+            Throwable var8 = null;
+
+            try {
+               if (!result.next()) {
+                  return CanonicalizeTablePathResponse.getDefaultInstance();
+               }
+
+               var9 = CanonicalizeTablePathResponse.newBuilder().setSchema(result.getString(2)).setTable(result.getString(3)).build();
+            } catch (Throwable var20) {
+               var9 = var20;
+               var8 = var20;
+               throw var20;
+            } finally {
+               if (result != null) {
+                  $closeResource(var8, result);
+               }
+
+            }
+         } catch (Throwable var22) {
+            var6 = var22;
+            throw var22;
+         } finally {
+            if (stmt != null) {
+               $closeResource(var6, stmt);
+            }
+
+         }
+
+         return (CanonicalizeTablePathResponse)var9;
+      }
+
+      // $FF: synthetic method
+      private static void $closeResource(Throwable x0, AutoCloseable x1) {
+         if (x0 != null) {
+            try {
+               x1.close();
+            } catch (Throwable var3) {
+               x0.addSuppressed(var3);
+            }
+         } else {
+            x1.close();
+         }
+
+      }
+   }
+
    public static enum OracleKeyWords {
-      ROWNUM,
-      TIMESTAMP;
+      ROWNUM;
    }
 }

@@ -46,7 +46,7 @@ class VarArgsRewritingSignature extends RewritingSignature {
    }
 
    OperatorDescriptor toOperatorDescriptor(String name) {
-      return new OperatorDescriptor(name, this.returnType, this.args, true);
+      return new OperatorDescriptor(name, this.getReturnType(), this.getArgs(), true);
    }
 
    private static String getRewrite(String rewrite) {

@@ -10,10 +10,10 @@ import com.dremio.exec.store.jdbc.JdbcPluginConfig;
 import com.dremio.exec.store.jdbc.JdbcSchemaFetcherImpl;
 import com.dremio.exec.store.jdbc.JdbcFetcherProto.CanonicalizeTablePathResponse;
 import com.dremio.exec.store.jdbc.JdbcFetcherProto.ListTableNamesRequest;
+import com.dremio.exec.store.jdbc.dialect.JdbcDremioSqlDialect;
 import com.dremio.exec.store.jdbc.dialect.TypeMapper;
 import com.dremio.exec.store.jdbc.dialect.arp.transformer.TimeUnitFunctionTransformer;
 import com.dremio.exec.store.jdbc.dialect.arp.transformer.TrimTransformer;
-import com.dremio.exec.store.jdbc.legacy.JdbcDremioSqlDialect;
 import com.dremio.exec.store.jdbc.rel.JdbcSort;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -21,6 +21,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet.Builder;
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -47,6 +48,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.SqlWriter.Frame;
@@ -94,6 +96,10 @@ public class ArpDialect extends JdbcDremioSqlDialect {
       return this.yaml.shouldInjectApproxNumericCastToProject();
    }
 
+   public boolean mapBooleanToBitExpr() {
+      return this.yaml.mapBooleanToBitExpr();
+   }
+
    public boolean supportsLiteral(CompleteType type) {
       return this.yaml.supportsLiteral(type);
    }
@@ -128,12 +134,33 @@ public class ArpDialect extends JdbcDremioSqlDialect {
       }
    }
 
+   public boolean supportsNumericFormatString(String numericFormatStr) {
+      Iterator var2 = this.yaml.getNumericFormatSupport().getNumericFormatMappings().iterator();
+
+      NumericFormatSupport.NumericFormatMapping format;
+      do {
+         do {
+            if (!var2.hasNext()) {
+               return true;
+            }
+
+            format = (NumericFormatSupport.NumericFormatMapping)var2.next();
+         } while(!numericFormatStr.contains(format.getDremioNumericFormatString()));
+      } while(null != format.getSourceNumericFormat() && format.getSourceNumericFormat().isEnable());
+
+      return false;
+   }
+
    public boolean supportsDistinct() {
       return this.yaml.supportsDistinct();
    }
 
-   public TypeMapper getDataTypeMapper() {
+   public TypeMapper getDataTypeMapper(JdbcPluginConfig config) {
       return this.typeMapper;
+   }
+
+   protected ArpYaml getYaml() {
+      return this.yaml;
    }
 
    public SqlNode getCastSpec(RelDataType type) {
@@ -218,7 +245,7 @@ public class ArpDialect extends JdbcDremioSqlDialect {
       tempWriter.setIndentation(0);
       String offsetString = null;
       String fetchString = null;
-      if (offset != null) {
+      if (offset != null && (!(offset instanceof SqlNumericLiteral) || !((SqlNumericLiteral)offset).bigDecimalValue().equals(BigDecimal.ZERO))) {
          offset.unparse(tempWriter, 0, 0);
          offsetString = tempWriter.toString();
          tempWriter.reset();
@@ -230,11 +257,11 @@ public class ArpDialect extends JdbcDremioSqlDialect {
          tempWriter.reset();
       }
 
-      if (offset != null && fetch != null) {
+      if (offsetString != null && fetchString != null) {
          writer.print(MessageFormat.format(this.yaml.getFetchOffsetFormat(), offsetString, fetchString));
-      } else if (offset != null) {
+      } else if (offsetString != null) {
          writer.print(MessageFormat.format(this.yaml.getOffsetFormat(), offsetString));
-      } else if (fetch != null) {
+      } else if (fetchString != null) {
          writer.print(MessageFormat.format(this.yaml.getLimitFormat(), fetchString));
       }
 
@@ -281,6 +308,10 @@ public class ArpDialect extends JdbcDremioSqlDialect {
 
    public ContainerSupport supportsSchemas() {
       return this.yaml.getSyntax().supportsSchemas();
+   }
+
+   public boolean supportsNestedAggregations() {
+      return false;
    }
 
    public CallTransformer getCallTransformer(RexCall call) {
@@ -462,11 +493,11 @@ public class ArpDialect extends JdbcDremioSqlDialect {
       }
 
       public CloseableIterator<CanonicalizeTablePathResponse> listTableNames(ListTableNamesRequest request) {
-         logger.debug("Getting all tables for plugin '{}'.", this.config.getSourceName());
+         logger.debug("Getting all tables for plugin '{}'.", this.getConfig().getSourceName());
 
          try {
-            Connection connection = this.dataSource.getConnection();
-            return new ArpDialect.ArpSchemaFetcher.ArpJdbcTableNamesIterator(this.config.getSourceName(), connection, this.filterQuery(this.query, connection.getMetaData()));
+            Connection connection = this.getDataSource().getConnection();
+            return new ArpDialect.ArpSchemaFetcher.ArpJdbcTableNamesIterator(this.getConfig().getSourceName(), connection, this.filterQuery(this.query, connection.getMetaData()));
          } catch (SQLException var3) {
             return ArpDialect.ArpSchemaFetcher.EmptyCloseableIterator.getInstance();
          }
@@ -482,11 +513,11 @@ public class ArpDialect extends JdbcDremioSqlDialect {
 
       protected String filterQuery(String query, DatabaseMetaData metaData) throws SQLException {
          StringBuilder filterQuery = new StringBuilder(query);
-         if (this.config.getDatabase() != null && this.config.showOnlyConnDatabase()) {
-            if (supportsCatalogs(this.config.getDialect(), metaData)) {
-               filterQuery.append(" AND CAT = ").append(this.config.getDialect().quoteStringLiteral(this.config.getDatabase()));
-            } else if (supportsSchemas(this.config.getDialect(), metaData)) {
-               filterQuery.append(" AND SCH = ").append(this.config.getDialect().quoteStringLiteral(this.config.getDatabase()));
+         if (this.getConfig().getDatabase() != null && this.getConfig().showOnlyConnDatabase()) {
+            if (supportsCatalogs(this.getConfig().getDialect(), metaData)) {
+               filterQuery.append(" AND CAT = ").append(this.getConfig().getDialect().quoteStringLiteral(this.getConfig().getDatabase()));
+            } else if (supportsSchemas(this.getConfig().getDialect(), metaData)) {
+               filterQuery.append(" AND SCH = ").append(this.getConfig().getDialect().quoteStringLiteral(this.getConfig().getDatabase()));
             }
          }
 

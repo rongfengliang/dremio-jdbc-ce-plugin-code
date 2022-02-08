@@ -3,8 +3,8 @@
 #
 
 metadata:
-  name: MSSQL
-  apiname: mssql
+  name: SYNAPSE
+  apiname: synapse
   spec_version: '1'
 
 syntax:
@@ -14,7 +14,7 @@ syntax:
 
 data_types:
   mappings:
-  # MSSQL typenames.
+  # SYNAPSE typenames.
   - source:
       name: "time"
       max_scale: 7
@@ -29,13 +29,6 @@ data_types:
     required_cast_args: "precision"
     dremio:
       name: "varbinary"
-  - source:
-      name: "ntext"
-      max_precision: 1073741823
-      literal_length_limit: 1073741823
-    required_cast_args: "precision"
-    dremio:
-      name: "varchar"
   - source:
       name: "nvarchar"
       max_precision: 4000
@@ -80,13 +73,6 @@ data_types:
     dremio:
       name: "bigint"
   - source:
-      name: "image"
-      max_precision: 2147483647
-      literal_length_limit: 2147483647
-    required_cast_args: "precision"
-    dremio:
-      name: "varbinary"
-  - source:
       name: "varbinary"
       max_precision: 8000
       literal_length_limit: 8000
@@ -101,20 +87,6 @@ data_types:
     required_cast_args: "precision"
     dremio:
       name: "varbinary"
-  # Review - removed manually.
-  # - source:
-  #     name: "timestamp"
-  #     max_precision: 8000
-  #     literal_length_limit: 8000
-  #   dremio:
-  #     name: "varbinary"
-  - source:
-      name: "text"
-      max_precision: 2147483647
-      literal_length_limit: 2147483647
-    required_cast_args: "precision"
-    dremio:
-      name: "varchar"
   - source:
       name: "char"
       max_precision: 8000
@@ -365,12 +337,11 @@ relational_algebra:
       default_nulls_ordering: low
     fetch_offset:
       offset_fetch:
-        enable: true
-        # Syntax is only supported in subqueries. Logic handled in MSSQLRelToSqlConverter.
-        format: 'OFFSET {0} ROWS FETCH NEXT {1} ROWS ONLY'
+        # OFFSET is not supported in Synapse.
+        enable: false
       offset_only:
-        enable: true
-        format: 'OFFSET {0} ROWS'
+        # OFFSET is not supported in Synapse.
+        enable: false
       fetch_only:
         # Limit is supported as 'TOP', but rewriting is handled in MSSQLDialect.
         enable: true
@@ -975,54 +946,45 @@ expressions:
     - return: bigint
       args:
         - date
+      rewrite: "DATEPART(YEAR, {0})"
     - return: bigint
       args:
         - timestamp
+      rewrite: "DATEPART(YEAR, {0})"
     - return: bigint
       args:
         - time
-    - return: bigint
-      args:
-        - interval_year_month
-    - return: bigint
-      args:
-        - interval_day_second
+      rewrite: "DATEPART(YEAR, {0})"
   - names:
     - extract_month
     signatures:
     - return: bigint
       args:
         - date
+      rewrite: "DATEPART(MONTH, {0})"
     - return: bigint
       args:
         - timestamp
+      rewrite: "DATEPART(MONTH, {0})"
     - return: bigint
       args:
         - time
-    - return: bigint
-      args:
-        - interval_year_month
-    - return: bigint
-      args:
-        - interval_day_second
+      rewrite: "DATEPART(MONTH, {0})"
   - names:
     - extract_day
     signatures:
     - return: bigint
       args:
         - date
+      rewrite: "DATEPART(DAY, {0})"
     - return: bigint
       args:
         - timestamp
+      rewrite: "DATEPART(DAY, {0})"
     - return: bigint
       args:
         - time
-    - return: bigint
-      args:
-        - interval_year_month
-    - return: bigint
-      args:
-        - interval_day_second
+      rewrite: "DATEPART(DAY, {0})"
   - names:
     - extract_hour
     signatures:

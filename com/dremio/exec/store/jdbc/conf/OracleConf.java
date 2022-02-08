@@ -3,6 +3,7 @@ package com.dremio.exec.store.jdbc.conf;
 import com.dremio.exec.catalog.conf.AuthenticationType;
 import com.dremio.exec.catalog.conf.DisplayMetadata;
 import com.dremio.exec.catalog.conf.NotMetadataImpacting;
+import com.dremio.exec.catalog.conf.Property;
 import com.dremio.exec.catalog.conf.Secret;
 import com.dremio.exec.catalog.conf.SourceType;
 import com.dremio.exec.store.jdbc.CloseableDataSource;
@@ -10,13 +11,10 @@ import com.dremio.exec.store.jdbc.DataSources;
 import com.dremio.exec.store.jdbc.JdbcPluginConfig;
 import com.dremio.exec.store.jdbc.JdbcPluginConfig.Builder;
 import com.dremio.exec.store.jdbc.dialect.OracleDialect;
-import com.dremio.exec.store.jdbc.dialect.arp.ArpDialect;
-import com.dremio.exec.store.jdbc.legacy.LegacyCapableJdbcConf;
-import com.dremio.exec.store.jdbc.legacy.LegacyDialect;
-import com.dremio.exec.store.jdbc.legacy.OracleLegacyDialect;
 import com.dremio.options.OptionManager;
 import com.dremio.security.CredentialsService;
 import com.dremio.security.PasswordCredentials;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -26,6 +24,7 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Properties;
 import javax.security.auth.x500.X500Principal;
 import javax.sql.ConnectionPoolDataSource;
@@ -37,9 +36,10 @@ import org.apache.commons.lang3.reflect.MethodUtils;
 @SourceType(
    value = "ORACLE",
    label = "Oracle",
-   uiConfig = "oracle-layout.json"
+   uiConfig = "oracle-layout.json",
+   externalQuerySupported = true
 )
-public class OracleConf extends LegacyCapableJdbcConf<OracleConf> {
+public class OracleConf extends AbstractArpConf<OracleConf> {
    private static final String ARP_FILENAME = "arp/implementation/oracle-arp.yaml";
    private static final OracleDialect ORACLE_ARP_DIALECT = (OracleDialect)AbstractArpConf.loadArpFile("arp/implementation/oracle-arp.yaml", OracleDialect::new);
    private static final String POOLED_DATASOURCE = "oracle.jdbc.pool.OracleConnectionPoolDataSource";
@@ -98,6 +98,7 @@ public class OracleConf extends LegacyCapableJdbcConf<OracleConf> {
    @DisplayMetadata(
       label = "Enable legacy dialect"
    )
+   @JsonIgnore
    public boolean useLegacyDialect = false;
    @Tag(12)
    @DisplayMetadata(
@@ -111,9 +112,7 @@ public class OracleConf extends LegacyCapableJdbcConf<OracleConf> {
    public String secretResourceUrl;
    @Tag(14)
    @NotMetadataImpacting
-   @DisplayMetadata(
-      label = "Grant External Query access (Warning: External Query allows users with the Can Query privilege on this source to query any table or view within the source)"
-   )
+   @JsonIgnore
    public boolean enableExternalQuery = false;
    @Tag(15)
    @DisplayMetadata(
@@ -135,13 +134,42 @@ public class OracleConf extends LegacyCapableJdbcConf<OracleConf> {
       label = "Use Kerberos"
    )
    public boolean useKerberos;
+   @Tag(19)
+   public List<Property> propertyList;
+   @Tag(20)
+   @DisplayMetadata(
+      label = "Maximum idle connections"
+   )
+   @NotMetadataImpacting
+   public int maxIdleConns;
+   @Tag(21)
+   @DisplayMetadata(
+      label = "Connection idle time (s)"
+   )
+   @NotMetadataImpacting
+   public int idleTimeSec;
+   @Tag(22)
+   @DisplayMetadata(
+      label = "Map Oracle DATE columns to TIMESTAMP"
+   )
+   public boolean mapDateToTimestamp;
+   @Tag(23)
+   @DisplayMetadata(
+      label = "Query timeout (s)"
+   )
+   @NotMetadataImpacting
+   public int queryTimeoutSec;
 
    public OracleConf() {
       this.nativeEncryption = OracleConf.OracleNativeEncryption.ACCEPTED;
+      this.maxIdleConns = 8;
+      this.idleTimeSec = 60;
+      this.mapDateToTimestamp = true;
+      this.queryTimeoutSec = 0;
    }
 
    public JdbcPluginConfig buildPluginConfig(Builder configBuilder, CredentialsService credentialsService, OptionManager optionManager) {
-      configBuilder.withDialect(this.getDialect()).withShowOnlyConnDatabase(false).withFetchSize(this.fetchSize).withAllowExternalQuery(this.supportsExternalQuery(this.enableExternalQuery)).withDatasourceFactory(() -> {
+      configBuilder.withDialect(this.getDialect()).withShowOnlyConnDatabase(false).withFetchSize(this.fetchSize).addGenericProperty("MAP_DATE_TO_TIMESTAMP", Boolean.toString(this.mapDateToTimestamp)).withQueryTimeout(this.queryTimeoutSec).withDatasourceFactory(() -> {
          return this.newDataSource(credentialsService);
       });
       if (!this.includeSynonyms) {
@@ -212,7 +240,13 @@ public class OracleConf extends LegacyCapableJdbcConf<OracleConf> {
          properties.put("oracle.net.ssl_server_dn_match", "true");
       }
 
-      return newDataSource(dataSource, url, this.username, thePassword, properties);
+      if (null != this.propertyList) {
+         this.propertyList.forEach((p) -> {
+            properties.put(p.name, p.value);
+         });
+      }
+
+      return newDataSource(dataSource, url, this.username, thePassword, properties, this.maxIdleConns, this.idleTimeSec);
    }
 
    private boolean isSslCertConfigured() {
@@ -233,7 +267,7 @@ public class OracleConf extends LegacyCapableJdbcConf<OracleConf> {
       }
    }
 
-   private static CloseableDataSource newDataSource(ConnectionPoolDataSource source, String url, String username, String password, Properties properties) throws SQLException {
+   private static CloseableDataSource newDataSource(ConnectionPoolDataSource source, String url, String username, String password, Properties properties, int maxIdleConns, int idleTimeSec) throws SQLException {
       try {
          MethodUtils.invokeExactMethod(source, "setURL", new Object[]{url});
          if (properties != null) {
@@ -245,35 +279,27 @@ public class OracleConf extends LegacyCapableJdbcConf<OracleConf> {
             MethodUtils.invokeExactMethod(source, "setPassword", new Object[]{password});
          }
 
-         return DataSources.newSharedDataSource(source);
-      } catch (InvocationTargetException var7) {
-         Throwable cause = var7.getCause();
+         return DataSources.newSharedDataSource(source, maxIdleConns, (long)idleTimeSec);
+      } catch (InvocationTargetException var9) {
+         Throwable cause = var9.getCause();
          if (cause != null) {
             Throwables.throwIfInstanceOf(cause, SQLException.class);
          }
 
-         throw new RuntimeException("Cannot instantiate Oracle datasource", var7);
-      } catch (ReflectiveOperationException var8) {
-         throw new RuntimeException("Cannot instantiate Oracle datasource", var8);
+         throw new RuntimeException("Cannot instantiate Oracle datasource", var9);
+      } catch (ReflectiveOperationException var10) {
+         throw new RuntimeException("Cannot instantiate Oracle datasource", var10);
       }
    }
 
-   protected LegacyDialect getLegacyDialect() {
-      return OracleLegacyDialect.INSTANCE;
-   }
-
-   protected ArpDialect getArpDialect() {
+   public OracleDialect getDialect() {
       return ORACLE_ARP_DIALECT;
-   }
-
-   protected boolean getLegacyFlag() {
-      return this.useLegacyDialect;
    }
 
    public static OracleConf newMessage() {
       OracleConf result = new OracleConf();
-      result.useLegacyDialect = true;
       result.includeSynonyms = true;
+      result.mapDateToTimestamp = true;
       return result;
    }
 

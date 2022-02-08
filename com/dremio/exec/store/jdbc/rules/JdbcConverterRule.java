@@ -3,7 +3,7 @@ package com.dremio.exec.store.jdbc.rules;
 import com.dremio.exec.catalog.StoragePluginId;
 import com.dremio.exec.planner.sql.handlers.RexSubQueryUtils.RexSubQueryPushdownChecker;
 import com.dremio.exec.store.jdbc.conf.DialectConf;
-import com.dremio.exec.store.jdbc.legacy.JdbcDremioSqlDialect;
+import com.dremio.exec.store.jdbc.dialect.JdbcDremioSqlDialect;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;

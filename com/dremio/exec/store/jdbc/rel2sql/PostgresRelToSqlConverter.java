@@ -5,7 +5,7 @@ import com.dremio.common.rel2sql.DremioRelToSqlConverter.Builder;
 import com.dremio.common.rel2sql.DremioRelToSqlConverter.DremioAliasContext;
 import com.dremio.common.rel2sql.DremioRelToSqlConverter.DremioContext;
 import com.dremio.common.rel2sql.SqlImplementor.Context;
-import com.dremio.exec.store.jdbc.legacy.JdbcDremioSqlDialect;
+import com.dremio.exec.store.jdbc.dialect.JdbcDremioSqlDialect;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -105,7 +105,7 @@ public class PostgresRelToSqlConverter extends JdbcDremioRelToSqlConverter {
    protected boolean canAddCollation(RelDataTypeField field) {
       if (field.getType().getSqlTypeName().getFamily() == SqlTypeFamily.CHARACTER) {
          String lowerCaseName = field.getName().toLowerCase(Locale.ROOT);
-         Map<String, String> properties = (Map)this.columnProperties.get(lowerCaseName);
+         Map<String, String> properties = (Map)this.getColumnProperties().get(lowerCaseName);
          if (properties != null) {
             String typeName = (String)properties.get("sourceTypeName");
             if (typeName != null) {
@@ -116,19 +116,14 @@ public class PostgresRelToSqlConverter extends JdbcDremioRelToSqlConverter {
                      var6 = 0;
                   }
                   break;
-               case 3052374:
-                  if (typeName.equals("char")) {
-                     var6 = 1;
-                  }
-                  break;
                case 3556653:
                   if (typeName.equals("text")) {
-                     var6 = 2;
+                     var6 = 1;
                   }
                   break;
                case 236613373:
                   if (typeName.equals("varchar")) {
-                     var6 = 3;
+                     var6 = 2;
                   }
                }
 
@@ -136,7 +131,6 @@ public class PostgresRelToSqlConverter extends JdbcDremioRelToSqlConverter {
                case 0:
                case 1:
                case 2:
-               case 3:
                   return true;
                default:
                   return false;

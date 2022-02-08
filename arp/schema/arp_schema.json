@@ -473,17 +473,13 @@
       "description": "Generic syntactic properties about the SQL dialect.",
       "type": "object",
       "required": [
-        "identifier_quote",
-        "allows_boolean_literal"
+        "identifier_quote"
       ],
       "properties": {
         "identifier_quote": {
           "description": "The identifier quote character. If this is a '[' character, then identifier sequences will be closed with ']'.",
           "type": "string",
           "pattern": "^\\s*\\S{1}\\s*$"
-        },
-        "allows_boolean_literal": {
-          "type": "boolean"
         },
         "supports_catalogs": {
           "description": "Allows manual override of automatic detection of catalog support in the data source. If omitted, then Dremio will attempt to auto-detect support.",
@@ -493,7 +489,7 @@
           "description": "Allows manual override of automatic detection of schema support in the data source. If omitted, then Dremio will attempt to auto-detect support.",
           "type": "boolean"
         },
-        "map_boolean_literal_to_bit": {
+        "map_boolean_to_bit_expr": {
           "description": "Indicates if true/false literals should be mapped to 1/0.",
           "type": "boolean"
         },
@@ -1149,6 +1145,95 @@
                 "enable": {
                   "type": "boolean"
                 },
+                "format": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "numeric_formats": {
+          "description": "Describes the numeric format string mappings, for functions such as TO_CHAR.",
+          "type": "object",
+          "required": [
+            "digit",
+            "digit_zero",
+            "decimal",
+            "group_separator",
+            "exponent_separator",
+            "quote_character"
+          ],
+          "properties": {
+            "digit": {
+              "required": [
+                "enable"
+              ],
+              "properties": {
+                "enable": {
+                  "type": "boolean"
+                },
+                "format": {
+                  "type": "string"
+                }
+              }
+            },
+            "digit_zero": {
+              "required": [
+                "enable"
+              ],
+              "properties": {
+                "enable": {
+                  "type": "boolean"
+                },
+                "format": {
+                  "type": "string"
+                }
+              }
+            },
+            "decimal": {
+              "required": [
+                "enable"
+              ],
+              "properties": {
+                "enable": {
+                  "type": "boolean"
+                },
+                "format": {
+                  "type": "string"
+                }
+              }
+            },
+            "group_separator": {
+              "required": [
+                "enable"
+              ],
+              "properties": {
+                "enable": {
+                  "type": "boolean"
+                },
+                "format": {
+                  "type": "string"
+                }
+              }
+            },
+            "exponent_separator": {
+              "required": [
+                "enable"
+              ],
+              "properties": {
+                "enable": {
+                  "type": "boolean"
+                },
+                "format": {
+                  "type": "string"
+                }
+              }
+            },
+            "quote_character": {
+              "required": [
+                "format"
+              ],
+              "properties": {
                 "format": {
                   "type": "string"
                 }

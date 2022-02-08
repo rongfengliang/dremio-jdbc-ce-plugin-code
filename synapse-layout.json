@@ -1,5 +1,5 @@
 {
-  "sourceType": "MYSQL",
+  "sourceType": "SYNAPSE",
   "metadataRefresh": {
     "datasetDiscovery": true
   },
@@ -23,13 +23,13 @@
               },
               {
                 "propName": "config.port",
-                "size": "half",
+                "size": "half"
+              },
+              {
+                "propName": "config.database",
                 "validate": {
                   "isRequired": true
                 }
-              },
-              {
-                "propName": "config.database"
               }
             ]
           },
@@ -40,6 +40,10 @@
                 "propName": "config.authenticationType"
               }
             ]
+          },
+          {
+            "propName": "config.useSsl",
+            "tooltip": "Encryption validation mode can be customized under Advanced Options > Encryption"
           }
         ]
       },
@@ -50,11 +54,6 @@
             "elements": [
               {
                 "propName": "config.showOnlyConnectionDatabase"
-              },
-              {
-                "propName": "config.netWriteTimeout",
-                "size": "half",
-                "tooltip": "Seconds to wait for data from the server before aborting the connection."
               },
               {
                 "propName": "config.fetchSize",
@@ -82,6 +81,22 @@
               },
               {
                 "propName": "config.enableExternalQuery"
+              }
+            ]
+          },
+          {
+            "name": "Encryption",
+            "elements": [
+              {
+                "uiType": "check_enabled_container",
+                "propName": "config.enableServerVerification",
+                "checkValue": true,
+                "tooltip": "Verify Azure Synapse Analytics instance when using encrypted connections.",
+                "container": {
+                  "propName": "config.hostnameOverride",
+                  "placeholder": "eg my.sqlserver.com",
+                  "tooltip": "Use this field to specify a hostname in the SSL certificate that differs from the server name. Leave this field blank if the hostname in the certificate matches the server name."
+                }
               }
             ]
           },

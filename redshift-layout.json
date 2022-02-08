@@ -51,10 +51,33 @@
                 }
               },
               {
-                "propName": "config.enableExternalQuery"
+                "propName": "config.maxIdleConns",
+                "size": "half",
+                "tooltip": "Maximum number of idle connections to keep."
               },
               {
-                "propName": "config.useLegacyDialect"
+                "propName": "config.idleTimeSec",
+                "size": "half",
+                "tooltip": "Idle time, in seconds, before a connection is considered for closure."
+              },
+              {
+                "propName": "config.queryTimeoutSec",
+                "size": "half",
+                "tooltip": "The timeout, in seconds, for query execution before it is canceled. Set to 0 for no timeout."
+              },
+              {
+                "propName": "config.enableExternalQuery"
+              }
+            ]
+          },
+          {
+            "name": "Connection Properties",
+            "elements": [
+              {
+                "emptyLabel": "No properties added",
+                "addLabel": "Add property",
+                "propName": "config.propertyList",
+                "tooltip": "Add a new property that will be used to establish a connection."
               }
             ]
           }

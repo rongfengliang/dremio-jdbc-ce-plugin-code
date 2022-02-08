@@ -20,7 +20,7 @@ import com.dremio.exec.record.BatchSchema;
 import com.dremio.exec.record.BatchSchema.SelectionVectorMode;
 import com.dremio.exec.store.jdbc.JdbcGroupScan;
 import com.dremio.exec.store.jdbc.conf.DialectConf;
-import com.dremio.exec.store.jdbc.legacy.JdbcDremioSqlDialect;
+import com.dremio.exec.store.jdbc.dialect.JdbcDremioSqlDialect;
 import com.dremio.exec.store.jdbc.proto.JdbcReaderProto;
 import com.dremio.exec.store.jdbc.rel2sql.JdbcDremioRelToSqlConverter;
 import com.dremio.options.Options;

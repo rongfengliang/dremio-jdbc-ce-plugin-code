@@ -14,7 +14,7 @@ public class JdbcBatchCreator implements Creator<JdbcSubScan> {
       JdbcStoragePlugin plugin = (JdbcStoragePlugin)fragmentExecContext.getStoragePlugin(subScan.getPluginId());
       JdbcSchemaFetcherImpl schemaFetcher = (JdbcSchemaFetcherImpl)plugin.getFetcher();
       JdbcPluginConfig config = plugin.getConfig();
-      JdbcRecordReader innerReader = new JdbcRecordReader(context, schemaFetcher.getSource(), subScan.getSql(), config.getSourceName(), subScan.getColumns(), config.getFetchSize(), fragmentExecContext.cancelled(), subScan.getPluginId().getCapabilities(), plugin.getDialect().getDataTypeMapper(), subScan.getReferencedTables(), subScan.getSkippedColumns());
+      JdbcRecordReader innerReader = new JdbcRecordReader(context, schemaFetcher.getSource(), subScan.getSql(), config, subScan.getColumns(), fragmentExecContext.cancelled(), subScan.getPluginId().getCapabilities(), plugin.getDialect().getDataTypeMapper(config), subScan.getReferencedTables(), subScan.getSkippedColumns());
       CoercionReader reader = new CoercionReader(context, subScan.getColumns(), innerReader, subScan.getFullSchema());
       return new ScanOperator(subScan, context, RecordReaderIterator.from(reader));
    }

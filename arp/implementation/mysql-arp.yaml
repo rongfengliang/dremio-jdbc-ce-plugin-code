@@ -9,7 +9,6 @@ metadata:
 
 syntax:
   identifier_quote: '`'
-  allows_boolean_literal: true
 
 data_types:
   mappings:
@@ -115,7 +114,7 @@ data_types:
   - source:
       name: "INTEGER UNSIGNED"
     dremio:
-      name: "integer"
+      name: "bigint"
   - source:
       name: "INT"
     dremio:
@@ -124,7 +123,7 @@ data_types:
   - source:
       name: "INT UNSIGNED"
     dremio:
-      name: "integer"
+      name: "bigint"
   - source:
       name: "MEDIUMINT"
     dremio:
@@ -1755,12 +1754,12 @@ expressions:
       - "varchar"
       - "time"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) THEN 0 WHEN {0} REGEXP ''^[0-9]+:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?$'' AND {0} = {1} THEN 0 WHEN {0} REGEXP ''^[0-9]+:[0-9]{2}(\\.[0-9]+)?$'' = 1 AND CONCAT({0}, '':00'') = {1} THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) THEN 0 WHEN {0} REGEXP ''^[0-9]+:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?$'' AND {0} = {1} THEN 0 WHEN {0} REGEXP ''^[0-9]+:[0-9]{2}(\\.[0-9]+)?$'' = 1 AND CONCAT({0}, '':00'') = {1} THEN 0 ELSE 1 END = 1"
     - args:
       - "time"
       - "varchar"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) THEN 0 WHEN {1} REGEXP ''^[0-9]+:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?$'' AND {0} = {1} THEN 0 WHEN {1} REGEXP ''^[0-9]+:[0-9]{2}(\\.[0-9]+)?$'' = 1 AND CONCAT({1}, '':00'') = {0} THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) THEN 0 WHEN {1} REGEXP ''^[0-9]+:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?$'' AND {0} = {1} THEN 0 WHEN {1} REGEXP ''^[0-9]+:[0-9]{2}(\\.[0-9]+)?$'' = 1 AND CONCAT({1}, '':00'') = {0} THEN 0 ELSE 1 END = 1"
     - args:
       - "varchar"
       - "date"
@@ -1775,12 +1774,12 @@ expressions:
       - "boolean"
       - "varchar"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (LOWER({1}) REGEXP ''^([t1y]|yes|true)$'' AND {0}) OR (LOWER({1}) REGEXP ''^([f0n]|no|false)$'' AND NOT {0}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (LOWER({1}) REGEXP ''^([t1y]|yes|true)$'' AND {0}) OR (LOWER({1}) REGEXP ''^([f0n]|no|false)$'' AND NOT {0}) THEN 0 ELSE 1 END = 1"
     - args:
       - "varchar"
       - "boolean"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (LOWER({0}) REGEXP ''^([t1y]|yes|true)$'' AND {1}) OR (LOWER({0}) REGEXP ''^([f0n]|no|false)$'' AND NOT {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (LOWER({0}) REGEXP ''^([t1y]|yes|true)$'' AND {1}) OR (LOWER({0}) REGEXP ''^([f0n]|no|false)$'' AND NOT {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "float"
       - "float"
@@ -1948,12 +1947,12 @@ expressions:
       - "varchar"
       - "time"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) THEN 0 WHEN {0} REGEXP ''^[0-9]+:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?$'' AND {0} = {1} THEN 0 WHEN {0} REGEXP ''^[0-9]+:[0-9]{2}(\\.[0-9]+)?$'' = 1 AND CONCAT({0}, '':00'') = {1} THEN 0 ELSE 1 END = 0 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) THEN 0 WHEN {0} REGEXP ''^[0-9]+:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?$'' AND {0} = {1} THEN 0 WHEN {0} REGEXP ''^[0-9]+:[0-9]{2}(\\.[0-9]+)?$'' = 1 AND CONCAT({0}, '':00'') = {1} THEN 0 ELSE 1 END = 0"
     - args:
       - "time"
       - "varchar"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) THEN 0 WHEN {1} REGEXP ''^[0-9]+:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?$'' AND {0} = {1} THEN 0 WHEN {1} REGEXP ''^[0-9]+:[0-9]{2}(\\.[0-9]+)?$'' = 1 AND CONCAT({1}, '':00'') = {0} THEN 0 ELSE 1 END = 0 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) THEN 0 WHEN {1} REGEXP ''^[0-9]+:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?$'' AND {0} = {1} THEN 0 WHEN {1} REGEXP ''^[0-9]+:[0-9]{2}(\\.[0-9]+)?$'' = 1 AND CONCAT({1}, '':00'') = {0} THEN 0 ELSE 1 END = 0"
     - args:
       - "varchar"
       - "date"
@@ -2250,12 +2249,23 @@ expressions:
     - args:
       - "double"
       return: "double"
+      rewrite: "CEIL({0})"
+    - args:
+      - "double"
+      return: "bigint"
+      rewrite: "CEIL({0})"
+    - args:
+      - "float"
+      return: "bigint"
+      rewrite: "CEIL({0})"
     - args:
       - "float"
       return: "float"
+      rewrite: "CEIL({0})"
     - args:
       - "decimal"
       return: "decimal"
+      rewrite: "CEIL({0})"
     - args:
       - "bigint"
       return: "bigint"
@@ -2514,127 +2524,127 @@ expressions:
       - "decimal"
       - "decimal"
       return: "decimal"
-      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END "
+      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END"
     - args:
       - "decimal"
       - "double"
       return: "double"
-      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END "
+      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END"
     - args:
       - "decimal"
       - "float"
       return: "double"
-      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END "
+      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END"
     - args:
       - "decimal"
       - "bigint"
       return: "decimal"
-      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END "
+      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END"
     - args:
       - "decimal"
       - "integer"
       return: "decimal"
-      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END "
+      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END"
     - args:
       - "double"
       - "decimal"
       return: "double"
-      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END "
+      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END"
     - args:
       - "double"
       - "double"
       return: "double"
-      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END "
+      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END"
     - args:
       - "double"
       - "float"
       return: "double"
-      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END "
+      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END"
     - args:
       - "double"
       - "bigint"
       return: "double"
-      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END "
+      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END"
     - args:
       - "double"
       - "integer"
       return: "double"
-      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END "
+      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END"
     - args:
       - "float"
       - "decimal"
       return: "float"
-      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END "
+      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END"
     - args:
       - "float"
       - "double"
       return: "double"
-      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END "
+      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END"
     - args:
       - "float"
       - "float"
       return: "float"
-      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END "
+      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END"
     - args:
       - "float"
       - "bigint"
       return: "float"
-      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END "
+      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END"
     - args:
       - "float"
       - "integer"
       return: "float"
-      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END "
+      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END"
     - args:
       - "bigint"
       - "decimal"
       return: "bigint"
-      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END "
+      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END"
     - args:
       - "bigint"
       - "double"
       return: "double"
-      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END "
+      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END"
     - args:
       - "bigint"
       - "float"
       return: "float"
-      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END "
+      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END"
     - args:
       - "bigint"
       - "bigint"
       return: "bigint"
-      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END "
+      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END"
     - args:
       - "bigint"
       - "integer"
       return: "integer"
-      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END "
+      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END"
     - args:
       - "integer"
       - "decimal"
       return: "decimal"
-      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END "
+      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END"
     - args:
       - "integer"
       - "double"
       return: "double"
-      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END "
+      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END"
     - args:
       - "integer"
       - "float"
       return: "float"
-      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END "
+      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END"
     - args:
       - "integer"
       - "bigint"
       return: "bigint"
-      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END "
+      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END"
     - args:
       - "integer"
       - "integer"
       return: "integer"
-      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END "
+      rewrite: "CASE WHEN {1} = 0 THEN NULL ELSE MOD({0}, {1}) END"
   - names:
     - "pi"
     signatures:
@@ -2836,52 +2846,52 @@ expressions:
       - "double"
       - "decimal"
       return: "double"
-      rewrite: "(CASE WHEN {1} < 0 THEN ROUND(CAST(TRUNCATE({0}, 0) AS DECIMAL(65)), {1}) ELSE (CASE WHEN {0} < 0 THEN CEIL({0} * POW(10,{1}) - 0.5) ELSE FLOOR({0} * POW(10,{1}) + 0.5) END / POW(10, {1})) END + 0e0) "
+      rewrite: "(CASE WHEN {1} < 0 THEN ROUND(CAST(TRUNCATE({0}, 0) AS DECIMAL(65)), {1}) ELSE (CASE WHEN {0} < 0 THEN CEIL({0} * POW(10,{1}) - 0.5) ELSE FLOOR({0} * POW(10,{1}) + 0.5) END / POW(10, {1})) END + 0e0)"
     - args:
       - "double"
       - "double"
       return: "double"
-      rewrite: "(CASE WHEN {1} < 0 THEN ROUND(CAST(TRUNCATE({0}, 0) AS DECIMAL(65)), {1}) ELSE (CASE WHEN {0} < 0 THEN CEIL({0} * POW(10,{1}) - 0.5) ELSE FLOOR({0} * POW(10,{1}) + 0.5) END / POW(10, {1})) END + 0e0) "
+      rewrite: "(CASE WHEN {1} < 0 THEN ROUND(CAST(TRUNCATE({0}, 0) AS DECIMAL(65)), {1}) ELSE (CASE WHEN {0} < 0 THEN CEIL({0} * POW(10,{1}) - 0.5) ELSE FLOOR({0} * POW(10,{1}) + 0.5) END / POW(10, {1})) END + 0e0)"
     - args:
       - "double"
       - "float"
       return: "double"
-      rewrite: "(CASE WHEN {1} < 0 THEN ROUND(CAST(TRUNCATE({0}, 0) AS DECIMAL(65)), {1}) ELSE (CASE WHEN {0} < 0 THEN CEIL({0} * POW(10,{1}) - 0.5) ELSE FLOOR({0} * POW(10,{1}) + 0.5) END / POW(10, {1})) END + 0e0) "
+      rewrite: "(CASE WHEN {1} < 0 THEN ROUND(CAST(TRUNCATE({0}, 0) AS DECIMAL(65)), {1}) ELSE (CASE WHEN {0} < 0 THEN CEIL({0} * POW(10,{1}) - 0.5) ELSE FLOOR({0} * POW(10,{1}) + 0.5) END / POW(10, {1})) END + 0e0)"
     - args:
       - "double"
       - "bigint"
       return: "double"
-      rewrite: "(CASE WHEN {1} < 0 THEN ROUND(CAST(TRUNCATE({0}, 0) AS DECIMAL(65)), {1}) ELSE (CASE WHEN {0} < 0 THEN CEIL({0} * POW(10,{1}) - 0.5) ELSE FLOOR({0} * POW(10,{1}) + 0.5) END / POW(10, {1})) END + 0e0) "
+      rewrite: "(CASE WHEN {1} < 0 THEN ROUND(CAST(TRUNCATE({0}, 0) AS DECIMAL(65)), {1}) ELSE (CASE WHEN {0} < 0 THEN CEIL({0} * POW(10,{1}) - 0.5) ELSE FLOOR({0} * POW(10,{1}) + 0.5) END / POW(10, {1})) END + 0e0)"
     - args:
       - "double"
       - "integer"
       return: "double"
-      rewrite: "(CASE WHEN {1} < 0 THEN ROUND(CAST(TRUNCATE({0}, 0) AS DECIMAL(65)), {1}) ELSE (CASE WHEN {0} < 0 THEN CEIL({0} * POW(10,{1}) - 0.5) ELSE FLOOR({0} * POW(10,{1}) + 0.5) END / POW(10, {1})) END + 0e0) "
+      rewrite: "(CASE WHEN {1} < 0 THEN ROUND(CAST(TRUNCATE({0}, 0) AS DECIMAL(65)), {1}) ELSE (CASE WHEN {0} < 0 THEN CEIL({0} * POW(10,{1}) - 0.5) ELSE FLOOR({0} * POW(10,{1}) + 0.5) END / POW(10, {1})) END + 0e0)"
     - args:
       - "float"
       - "decimal"
       return: "float"
-      rewrite: "(CASE WHEN {1} < 0 THEN ROUND(CAST(TRUNCATE({0}, 0) AS DECIMAL(65)), {1}) ELSE (CASE WHEN {0} < 0 THEN CEIL({0} * POW(10,{1}) - 0.5) ELSE FLOOR({0} * POW(10,{1}) + 0.5) END / POW(10, {1})) END + 0e0) "
+      rewrite: "(CASE WHEN {1} < 0 THEN ROUND(CAST(TRUNCATE({0}, 0) AS DECIMAL(65)), {1}) ELSE (CASE WHEN {0} < 0 THEN CEIL({0} * POW(10,{1}) - 0.5) ELSE FLOOR({0} * POW(10,{1}) + 0.5) END / POW(10, {1})) END + 0e0)"
     - args:
       - "float"
       - "double"
       return: "float"
-      rewrite: "(CASE WHEN {1} < 0 THEN ROUND(CAST(TRUNCATE({0}, 0) AS DECIMAL(65)), {1}) ELSE (CASE WHEN {0} < 0 THEN CEIL({0} * POW(10,{1}) - 0.5) ELSE FLOOR({0} * POW(10,{1}) + 0.5) END / POW(10, {1})) END + 0e0) "
+      rewrite: "(CASE WHEN {1} < 0 THEN ROUND(CAST(TRUNCATE({0}, 0) AS DECIMAL(65)), {1}) ELSE (CASE WHEN {0} < 0 THEN CEIL({0} * POW(10,{1}) - 0.5) ELSE FLOOR({0} * POW(10,{1}) + 0.5) END / POW(10, {1})) END + 0e0)"
     - args:
       - "float"
       - "float"
       return: "float"
-      rewrite: "(CASE WHEN {1} < 0 THEN ROUND(CAST(TRUNCATE({0}, 0) AS DECIMAL(65)), {1}) ELSE (CASE WHEN {0} < 0 THEN CEIL({0} * POW(10,{1}) - 0.5) ELSE FLOOR({0} * POW(10,{1}) + 0.5) END / POW(10, {1})) END + 0e0) "
+      rewrite: "(CASE WHEN {1} < 0 THEN ROUND(CAST(TRUNCATE({0}, 0) AS DECIMAL(65)), {1}) ELSE (CASE WHEN {0} < 0 THEN CEIL({0} * POW(10,{1}) - 0.5) ELSE FLOOR({0} * POW(10,{1}) + 0.5) END / POW(10, {1})) END + 0e0)"
     - args:
       - "float"
       - "bigint"
       return: "float"
-      rewrite: "(CASE WHEN {1} < 0 THEN ROUND(CAST(TRUNCATE({0}, 0) AS DECIMAL(65)), {1}) ELSE (CASE WHEN {0} < 0 THEN CEIL({0} * POW(10,{1}) - 0.5) ELSE FLOOR({0} * POW(10,{1}) + 0.5) END / POW(10, {1})) END + 0e0) "
+      rewrite: "(CASE WHEN {1} < 0 THEN ROUND(CAST(TRUNCATE({0}, 0) AS DECIMAL(65)), {1}) ELSE (CASE WHEN {0} < 0 THEN CEIL({0} * POW(10,{1}) - 0.5) ELSE FLOOR({0} * POW(10,{1}) + 0.5) END / POW(10, {1})) END + 0e0)"
     - args:
       - "float"
       - "integer"
       return: "float"
-      rewrite: "(CASE WHEN {1} < 0 THEN ROUND(CAST(TRUNCATE({0}, 0) AS DECIMAL(65)), {1}) ELSE (CASE WHEN {0} < 0 THEN CEIL({0} * POW(10,{1}) - 0.5) ELSE FLOOR({0} * POW(10,{1}) + 0.5) END / POW(10, {1})) END + 0e0) "
+      rewrite: "(CASE WHEN {1} < 0 THEN ROUND(CAST(TRUNCATE({0}, 0) AS DECIMAL(65)), {1}) ELSE (CASE WHEN {0} < 0 THEN CEIL({0} * POW(10,{1}) - 0.5) ELSE FLOOR({0} * POW(10,{1}) + 0.5) END / POW(10, {1})) END + 0e0)"
     - args:
       - "bigint"
       - "decimal"
@@ -3097,10 +3107,12 @@ expressions:
       return: "integer"
   - names:
     - "lower"
+    - "lcase"
     signatures:
     - args:
       - "varchar"
       return: "varchar"
+      rewrite: "LOWER({0})"
   - names:
     - "replace"
     signatures:
@@ -3175,10 +3187,12 @@ expressions:
       return: "varchar"
   - names:
     - "upper"
+    - "ucase"
     signatures:
     - args:
       - "varchar"
       return: "varchar"
+      rewrite: "UPPER({0})"
   - names:
     - "position"
     - "locate"
@@ -3934,6 +3948,18 @@ expressions:
   - names:
     - "to_date"
     signatures:
+      - return: "date"
+        args:
+          - "date"
+        rewrite: "{0}"
+      - return: "date"
+        args:
+          - "timestamp"
+        rewrite: "CAST({0} AS DATE)"
+      - return: "date"
+        args:
+          - "varchar"
+        rewrite: "CAST({0} AS DATE)"
       - return: "timestamp"
         args:
           - "varchar"

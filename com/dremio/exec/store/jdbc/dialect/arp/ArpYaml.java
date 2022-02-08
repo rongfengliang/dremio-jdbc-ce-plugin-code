@@ -23,6 +23,7 @@ import org.apache.calcite.config.NullCollation;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.JoinType;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlKind;
@@ -32,6 +33,7 @@ import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -130,13 +132,27 @@ public final class ArpYaml {
          logger.debug("Searching in aggregation/functions YAML section for operator {}", op);
          sig = (Signature)this.relationalAlgebra.getAggregation().getFunctionMap().get(op);
       } else {
-         if (sqlCall.getKind() == SqlKind.OTHER_FUNCTION && "TO_DATE".equalsIgnoreCase(sqlCall.getOperator().getName())) {
-            SqlNode operand = (SqlNode)sqlCall.getOperandList().get(1);
-            if (operand.getKind().equals(SqlKind.LITERAL)) {
-               String formatStr = (String)((SqlLiteral)operand).getValueAs(String.class);
-               if (null != formatStr) {
-                  String transformedFormatStr = this.transformDateTimeFormatString(formatStr);
-                  sqlCall.setOperand(1, SqlLiteral.createCharString(transformedFormatStr, SqlParserPos.ZERO));
+         if (sqlCall.getKind() == SqlKind.OTHER_FUNCTION && 2 == sqlCall.getOperandList().size()) {
+            String formatStr;
+            String transformedFormatStr;
+            SqlNode operand;
+            if ("TO_DATE".equalsIgnoreCase(sqlCall.getOperator().getName())) {
+               operand = (SqlNode)sqlCall.getOperandList().get(1);
+               if (operand.getKind().equals(SqlKind.LITERAL)) {
+                  formatStr = (String)((SqlLiteral)operand).getValueAs(String.class);
+                  if (null != formatStr) {
+                     transformedFormatStr = this.transformDateTimeFormatString(formatStr);
+                     sqlCall.setOperand(1, SqlLiteral.createCharString(transformedFormatStr, SqlParserPos.ZERO));
+                  }
+               }
+            } else if ("TO_CHAR".equalsIgnoreCase(sqlCall.getOperator().getName()) && SqlTypeUtil.isNumeric(((RexNode)rexCall.getOperands().get(0)).getType())) {
+               operand = (SqlNode)sqlCall.getOperandList().get(1);
+               if (operand.getKind().equals(SqlKind.LITERAL)) {
+                  formatStr = (String)((SqlLiteral)operand).getValueAs(String.class);
+                  if (null != formatStr) {
+                     transformedFormatStr = this.transformNumericFormatString(formatStr);
+                     sqlCall.setOperand(1, SqlLiteral.createCharString(transformedFormatStr, SqlParserPos.ZERO));
+                  }
                }
             }
          }
@@ -390,6 +406,10 @@ public final class ArpYaml {
       return this.expressions.getDateTimeFormatSupport();
    }
 
+   public NumericFormatSupport getNumericFormatSupport() {
+      return this.expressions.getNumericFormatSupport();
+   }
+
    public boolean supportsSubquery() {
       return this.expressions.getSubQuerySupport().isEnabled();
    }
@@ -414,6 +434,10 @@ public final class ArpYaml {
       return this.syntax.shouldInjectApproxNumericCastToProject();
    }
 
+   public boolean mapBooleanToBitExpr() {
+      return this.syntax.mapBooleanToBitExpr();
+   }
+
    private String transformDateTimeFormatString(String dremioDateTimeFormatStr) {
       Iterator var2 = this.getDateTimeFormatSupport().getDateTimeFormatMappings().iterator();
 
@@ -434,6 +458,31 @@ public final class ArpYaml {
          if (!dtFormat.areDateTimeFormatsEqual()) {
             String formatRegex = "((" + dtFormat.getDremioDateTimeFormatString() + ")(?=(?:[^\"]|\"[^\"]*\")*$))+";
             dremioDateTimeFormatStr = dremioDateTimeFormatStr.replaceAll(formatRegex, dtFormat.getSourceDateTimeFormat().getFormat());
+         }
+      }
+   }
+
+   private String transformNumericFormatString(String dremioNumericFormatStr) {
+      String escapeQuote = this.getNumericFormatSupport().getEscapeQuote();
+      Iterator var3 = this.getNumericFormatSupport().getNumericFormatMappings().iterator();
+
+      while(true) {
+         NumericFormatSupport.NumericFormatMapping format;
+         do {
+            if (!var3.hasNext()) {
+               return dremioNumericFormatStr;
+            }
+
+            format = (NumericFormatSupport.NumericFormatMapping)var3.next();
+         } while(!dremioNumericFormatStr.contains(format.getDremioNumericFormatString()));
+
+         if (null == format.getSourceNumericFormat() || !format.getSourceNumericFormat().isEnable()) {
+            throw new IllegalStateException("Numeric string format '" + format.getDremioNumericFormatString() + "' is not supported.");
+         }
+
+         if (!format.areNumericFormatsEqual()) {
+            String formatRegex = "((" + format.getDremioNumericFormatString() + ")(?=(?:[^\\Q" + escapeQuote + "\\E]|\"[^\\Q" + escapeQuote + "\\E]*\\Q" + escapeQuote + "\\E)*$))";
+            dremioNumericFormatStr = dremioNumericFormatStr.replaceAll(formatRegex, format.getSourceNumericFormat().getFormat());
          }
       }
    }

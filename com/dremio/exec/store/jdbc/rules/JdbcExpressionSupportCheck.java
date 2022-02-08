@@ -2,12 +2,13 @@ package com.dremio.exec.store.jdbc.rules;
 
 import com.dremio.common.dialect.arp.transformer.CallTransformer;
 import com.dremio.common.dialect.arp.transformer.NoOpTransformer;
+import com.dremio.common.expression.CompleteType;
 import com.dremio.exec.catalog.StoragePluginId;
 import com.dremio.exec.store.jdbc.EnumParameterUtils;
 import com.dremio.exec.store.jdbc.conf.DialectConf;
+import com.dremio.exec.store.jdbc.dialect.JdbcDremioSqlDialect;
 import com.dremio.exec.store.jdbc.dialect.SourceTypeDescriptor;
 import com.dremio.exec.store.jdbc.dialect.arp.transformer.TimeUnitFunctionTransformer;
-import com.dremio.exec.store.jdbc.legacy.JdbcDremioSqlDialect;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.UnmodifiableIterator;
@@ -38,9 +39,11 @@ import org.apache.calcite.rex.RexTableInputRef;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexVisitor;
 import org.apache.calcite.rex.RexWindow;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,12 +76,12 @@ public final class JdbcExpressionSupportCheck implements RexVisitor<Boolean> {
       logger.debug("Evaluating support for {} with operand types {} and return type {}", new Object[]{paramRexCall.getOperator().getName(), paramTypes, paramRexCall.getType()});
       CallTransformer transformer = this.dialect.getCallTransformer(paramRexCall);
       boolean supportsFunction;
+      SqlOperator operator;
       if (transformer == TimeUnitFunctionTransformer.INSTANCE) {
          logger.debug("Operator {} has been identified as a time unit function. Checking support using supportsTimeUnitFunction().", paramRexCall.getOperator().getName());
          TimeUnitRange timeUnitRange = EnumParameterUtils.getFirstParamAsTimeUnitRange(operands);
          supportsFunction = this.dialect.supportsTimeUnitFunction(paramRexCall.getOperator(), timeUnitRange, paramRexCall.getType(), paramTypes);
       } else {
-         SqlOperator operator;
          if (transformer != NoOpTransformer.INSTANCE) {
             operator = transformer.getAlternateOperator(paramRexCall);
             paramTypes = (List)transformer.transformRexOperands(paramRexCall.operands).stream().map(RexNode::getType).collect(Collectors.toList());
@@ -88,8 +91,10 @@ public final class JdbcExpressionSupportCheck implements RexVisitor<Boolean> {
 
          logger.debug("Verifying support for operator {} using supportsFunction().", paramRexCall.getOperator().getName());
          if (this.dialect.supportsFunction(operator, paramRexCall.getType(), paramTypes)) {
-            if ("TO_DATE".equalsIgnoreCase(operator.getName())) {
+            if (2 == operands.size() && "TO_DATE".equalsIgnoreCase(operator.getName())) {
                supportsFunction = this.supportsDateTimeFormatString(operator, operands, 1);
+            } else if (2 == operands.size() && "TO_CHAR".equalsIgnoreCase(operator.getName()) && SqlTypeUtil.isNumeric(((RexNode)operands.get(0)).getType())) {
+               supportsFunction = this.supportsNumericFormatString(operator, operands, 1);
             } else if (operator.getName().toUpperCase(Locale.ROOT).startsWith("REGEXP_")) {
                supportsFunction = this.supportsRegexString(operator, operands);
             } else {
@@ -100,30 +105,42 @@ public final class JdbcExpressionSupportCheck implements RexVisitor<Boolean> {
          }
       }
 
-      if (supportsFunction) {
+      if (!supportsFunction) {
+         if (!this.dialect.useTimestampAddInsteadOfDatetimePlus() || paramRexCall.getOperator() != SqlStdOperatorTable.DATETIME_PLUS && paramRexCall.getOperator() != SqlStdOperatorTable.DATETIME_MINUS) {
+            logger.debug("Operator {} was not supported. Aborting pushdown of a RelNode using this operator.", paramRexCall.getOperator().getName());
+            return false;
+         } else {
+            logger.debug("Datetime + interval operation is unsupported, but dialect allows fallback to TIMESTAMPADD pushdown.");
+            logger.debug("Attempting to pushdown as TIMESTAMPADD.");
+            return this.visitDatetimePlusAsTimestampAdd(paramRexCall);
+         }
+      } else {
+         operator = paramRexCall.getOperator();
+         boolean noSupportsBit = !this.dialect.supportsLiteral(CompleteType.BIT);
          int i = 0;
-         Iterator var7 = operands.iterator();
+         Iterator var9 = operands.iterator();
 
          RexNode operand;
          do {
-            if (!var7.hasNext()) {
-               logger.debug("Operator {} was supported.", paramRexCall.getOperator().getName());
-               return true;
-            }
+            do {
+               do {
+                  if (!var9.hasNext()) {
+                     logger.debug("Operator {} was supported.", paramRexCall.getOperator().getName());
+                     return true;
+                  }
 
-            operand = (RexNode)var7.next();
-            ++i;
-         } while((Boolean)operand.accept(this));
+                  operand = (RexNode)var9.next();
+                  ++i;
+                  if (!(Boolean)operand.accept(this)) {
+                     logger.debug("Operand {} ({}) for operator {} was not supported. Aborting pushdown.", new Object[]{i, operand, paramRexCall.getOperator().getName()});
+                     return false;
+                  }
+               } while(!noSupportsBit);
+            } while(operator != SqlStdOperatorTable.AND && operator != SqlStdOperatorTable.OR);
+         } while(operand.getKind() != SqlKind.INPUT_REF || operand.getType().getSqlTypeName() != SqlTypeName.BOOLEAN);
 
-         logger.debug("Operand {} ({}) for operator {} was not supported. Aborting pushdown.", new Object[]{i, operand.toString(), paramRexCall.getOperator().getName()});
+         logger.debug("Operand {} ({}) for operator {} was not supported. Aborting pushdown.", new Object[]{i, operand, paramRexCall.getOperator().getName()});
          return false;
-      } else if (!this.dialect.useTimestampAddInsteadOfDatetimePlus() || paramRexCall.getOperator() != SqlStdOperatorTable.DATETIME_PLUS && paramRexCall.getOperator() != SqlStdOperatorTable.DATETIME_MINUS) {
-         logger.debug("Operator {} was not supported. Aborting pushdown of a RelNode using this operator.", paramRexCall.getOperator().getName());
-         return false;
-      } else {
-         logger.debug("Datetime + interval operation is unsupported, but dialect allows fallback to TIMESTAMPADD pushdown.");
-         logger.debug("Attempting to pushdown as TIMESTAMPADD.");
-         return this.visitDatetimePlusAsTimestampAdd(paramRexCall);
       }
    }
 
@@ -284,6 +301,16 @@ public final class JdbcExpressionSupportCheck implements RexVisitor<Boolean> {
       } else {
          logger.debug("Operator {} has been identified as having a datetime format string. Checking support using supportsDateTimeFormatString().", operator.getName());
          return this.dialect.supportsDateTimeFormatString(dateFormatStr);
+      }
+   }
+
+   private boolean supportsNumericFormatString(SqlOperator operator, List<RexNode> operands, int index) {
+      String numericFormatStr = this.getOperandAsString(operator, operands, index);
+      if (numericFormatStr == null) {
+         return false;
+      } else {
+         logger.debug("Operator {} has been identified as having a numeric format string. Checking support using supportsNumericFormatString().", operator.getName());
+         return this.dialect.supportsNumericFormatString(numericFormatStr);
       }
    }
 

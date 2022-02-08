@@ -2,10 +2,11 @@ package com.dremio.exec.store.jdbc.rules;
 
 import com.dremio.exec.calcite.logical.JdbcCrel;
 import com.dremio.exec.catalog.StoragePluginId;
+import com.dremio.exec.planner.common.MoreRelOptUtil;
 import com.dremio.exec.planner.logical.AggregateRel;
 import com.dremio.exec.planner.logical.Rel;
 import com.dremio.exec.store.jdbc.ColumnPropertyAccumulator;
-import com.dremio.exec.store.jdbc.legacy.JdbcDremioSqlDialect;
+import com.dremio.exec.store.jdbc.dialect.JdbcDremioSqlDialect;
 import com.dremio.exec.store.jdbc.rel.JdbcAggregate;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -27,7 +28,7 @@ import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class JdbcAggregateRule extends JdbcUnaryConverterRule {
+public final class JdbcAggregateRule extends JdbcUnaryConverterRule {
    private static final Logger logger = LoggerFactory.getLogger(JdbcAggregateRule.class);
    public static final JdbcAggregateRule CALCITE_INSTANCE = new JdbcAggregateRule(LogicalAggregate.class, "JdbcAggregateRuleCrel");
    public static final JdbcAggregateRule LOGICAL_INSTANCE = new JdbcAggregateRule(AggregateRel.class, "JdbcAggregateRuleDrel");
@@ -42,7 +43,7 @@ public class JdbcAggregateRule extends JdbcUnaryConverterRule {
          return null;
       } else {
          try {
-            return new JdbcAggregate(rel.getCluster(), crel.getTraitSet().replace(Rel.LOGICAL), crel.getInput(), agg.indicator, agg.getGroupSet(), agg.getGroupSets(), agg.getAggCallList(), pluginId);
+            return new JdbcAggregate(rel.getCluster(), crel.getTraitSet().replace(Rel.LOGICAL), crel.getInput(), agg.getGroupSet(), agg.getGroupSets(), agg.getAggCallList(), pluginId);
          } catch (InvalidRelException var6) {
             logger.debug(var6.toString());
             return null;
@@ -150,7 +151,7 @@ public class JdbcAggregateRule extends JdbcUnaryConverterRule {
       Integer index;
       do {
          if (!var5.hasNext()) {
-            if (UnpushableTypeVisitor.hasUnpushableTypes(input, input.getChildExps())) {
+            if (UnpushableTypeVisitor.hasUnpushableTypes(input, MoreRelOptUtil.getChildExps(input))) {
                logger.debug("Aggregate has types that are not pushable. Aborting pushdown.");
                return true;
             }

@@ -3,6 +3,7 @@ package com.dremio.exec.store.jdbc.conf;
 import com.dremio.exec.catalog.conf.AuthenticationType;
 import com.dremio.exec.catalog.conf.DisplayMetadata;
 import com.dremio.exec.catalog.conf.NotMetadataImpacting;
+import com.dremio.exec.catalog.conf.Property;
 import com.dremio.exec.catalog.conf.Secret;
 import com.dremio.exec.catalog.conf.SourceType;
 import com.dremio.exec.store.jdbc.CloseableDataSource;
@@ -10,12 +11,9 @@ import com.dremio.exec.store.jdbc.DataSources;
 import com.dremio.exec.store.jdbc.JdbcPluginConfig;
 import com.dremio.exec.store.jdbc.JdbcPluginConfig.Builder;
 import com.dremio.exec.store.jdbc.dialect.MSSQLDialect;
-import com.dremio.exec.store.jdbc.dialect.arp.ArpDialect;
-import com.dremio.exec.store.jdbc.legacy.LegacyCapableJdbcConf;
-import com.dremio.exec.store.jdbc.legacy.LegacyDialect;
-import com.dremio.exec.store.jdbc.legacy.MSSQLLegacyDialect;
 import com.dremio.options.OptionManager;
 import com.dremio.security.CredentialsService;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -23,6 +21,8 @@ import com.google.common.base.Throwables;
 import io.protostuff.Tag;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.SQLException;
+import java.util.List;
+import java.util.stream.Collectors;
 import javax.sql.ConnectionPoolDataSource;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
@@ -32,9 +32,10 @@ import org.apache.commons.lang3.reflect.MethodUtils;
 @SourceType(
    value = "MSSQL",
    label = "Microsoft SQL Server",
-   uiConfig = "mssql-layout.json"
+   uiConfig = "mssql-layout.json",
+   externalQuerySupported = true
 )
-public class MSSQLConf extends LegacyCapableJdbcConf<MSSQLConf> {
+public class MSSQLConf extends AbstractArpConf<MSSQLConf> {
    private static final String ARP_FILENAME = "arp/implementation/mssql-arp.yaml";
    private static final MSSQLDialect MS_ARP_DIALECT = (MSSQLDialect)AbstractArpConf.loadArpFile("arp/implementation/mssql-arp.yaml", MSSQLDialect::new);
    private static final String POOLED_DATASOURCE = "com.microsoft.sqlserver.jdbc.SQLServerConnectionPoolDataSource";
@@ -82,6 +83,7 @@ public class MSSQLConf extends LegacyCapableJdbcConf<MSSQLConf> {
    @DisplayMetadata(
       label = "Enable legacy dialect"
    )
+   @JsonIgnore
    public boolean useLegacyDialect = false;
    @Tag(11)
    @DisplayMetadata(
@@ -103,13 +105,31 @@ public class MSSQLConf extends LegacyCapableJdbcConf<MSSQLConf> {
    public String hostnameOverride;
    @Tag(14)
    @NotMetadataImpacting
-   @DisplayMetadata(
-      label = "Grant External Query access (Warning: External Query allows users with the Can Query privilege on this source to query any table or view within the source)"
-   )
+   @JsonIgnore
    public boolean enableExternalQuery = false;
+   @Tag(15)
+   public List<Property> propertyList;
+   @Tag(16)
+   @DisplayMetadata(
+      label = "Maximum idle connections"
+   )
+   @NotMetadataImpacting
+   public int maxIdleConns = 8;
+   @Tag(17)
+   @DisplayMetadata(
+      label = "Connection idle time (s)"
+   )
+   @NotMetadataImpacting
+   public int idleTimeSec = 60;
+   @Tag(18)
+   @DisplayMetadata(
+      label = "Query timeout (s)"
+   )
+   @NotMetadataImpacting
+   public int queryTimeoutSec = 0;
 
    public JdbcPluginConfig buildPluginConfig(Builder configBuilder, CredentialsService credentialsService, OptionManager optionManager) {
-      return configBuilder.withDialect(this.getDialect()).withDatasourceFactory(this::newDataSource).withDatabase(this.database).withShowOnlyConnDatabase(this.showOnlyConnectionDatabase).withFetchSize(this.fetchSize).withAllowExternalQuery(this.supportsExternalQuery(this.enableExternalQuery)).build();
+      return configBuilder.withDialect(this.getDialect()).withDatasourceFactory(this::newDataSource).withDatabase(this.database).withShowOnlyConnDatabase(this.showOnlyConnectionDatabase).withFetchSize(this.fetchSize).withQueryTimeout(this.queryTimeoutSec).build();
    }
 
    private CloseableDataSource newDataSource() throws SQLException {
@@ -126,7 +146,7 @@ public class MSSQLConf extends LegacyCapableJdbcConf<MSSQLConf> {
             MethodUtils.invokeExactMethod(source, "setPassword", new Object[]{this.password});
          }
 
-         return DataSources.newSharedDataSource(source);
+         return DataSources.newSharedDataSource(source, this.maxIdleConns, (long)this.idleTimeSec);
       } catch (InvocationTargetException var4) {
          Throwable cause = var4.getCause();
          if (cause != null) {
@@ -160,25 +180,17 @@ public class MSSQLConf extends LegacyCapableJdbcConf<MSSQLConf> {
          }
       }
 
+      if (null != this.propertyList && !this.propertyList.isEmpty()) {
+         urlBuilder.append((String)this.propertyList.stream().map((p) -> {
+            return p.name + "=" + p.value;
+         }).collect(Collectors.joining(";", ";", "")));
+      }
+
       return urlBuilder.toString();
    }
 
-   protected LegacyDialect getLegacyDialect() {
-      return MSSQLLegacyDialect.INSTANCE;
-   }
-
-   protected ArpDialect getArpDialect() {
+   public MSSQLDialect getDialect() {
       return MS_ARP_DIALECT;
-   }
-
-   protected boolean getLegacyFlag() {
-      return this.useLegacyDialect;
-   }
-
-   public static MSSQLConf newMessage() {
-      MSSQLConf result = new MSSQLConf();
-      result.useLegacyDialect = true;
-      return result;
    }
 
    @VisibleForTesting

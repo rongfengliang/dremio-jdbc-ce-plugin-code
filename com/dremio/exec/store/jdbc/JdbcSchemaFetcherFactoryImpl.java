@@ -7,6 +7,8 @@ import com.dremio.exec.store.jdbc.conf.JdbcConf;
 import com.dremio.exec.store.jdbc.conf.JdbcConstants;
 import com.dremio.options.OptionManager;
 import com.dremio.security.CredentialsService;
+import com.google.common.primitives.Ints;
+import java.util.function.Supplier;
 
 public class JdbcSchemaFetcherFactoryImpl implements JdbcSchemaFetcherFactory {
    private final OptionManager optionManager;
@@ -19,7 +21,10 @@ public class JdbcSchemaFetcherFactoryImpl implements JdbcSchemaFetcherFactory {
 
    public JdbcSchemaFetcher newFetcher(String sourceName, ConnectionConf<?, ?> connectionConf) {
       JdbcConf<?> jdbcConf = (JdbcConf)connectionConf;
-      Builder configBuilder = JdbcPluginConfig.newBuilder().withSourceName(sourceName).withQueryTimeout((int)this.optionManager.getOption(JdbcConstants.JDBC_ROW_COUNT_QUERY_TIMEOUT_VALIDATOR));
+      Supplier<Integer> rowCountQueryTimeout = () -> {
+         return Ints.saturatedCast(this.optionManager.getOption(JdbcConstants.JDBC_ROW_COUNT_QUERY_TIMEOUT_VALIDATOR));
+      };
+      Builder configBuilder = JdbcPluginConfig.newBuilder().withSourceName(sourceName).withRowCountQueryTimeOut(rowCountQueryTimeout);
       JdbcPluginConfig pluginConfig = jdbcConf.buildPluginConfig(configBuilder, this.credentialsService, this.optionManager);
       return pluginConfig.getDialect().newSchemaFetcher(pluginConfig);
    }

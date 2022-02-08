@@ -16,7 +16,7 @@ import org.apache.calcite.rex.RexProgram;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.fun.OracleSqlOperatorTable;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction.Flag;
 import org.apache.calcite.sql.parser.SqlParserPos;
@@ -80,9 +80,9 @@ public final class TrimTransformer extends CallTransformer {
       Flag value = (Flag)asLiteral.getValueAs(Flag.class);
       switch(value) {
       case LEADING:
-         return OracleSqlOperatorTable.LTRIM;
+         return SqlLibraryOperators.LTRIM;
       case TRAILING:
-         return OracleSqlOperatorTable.RTRIM;
+         return SqlLibraryOperators.RTRIM;
       case BOTH:
       default:
          return SqlStdOperatorTable.TRIM;

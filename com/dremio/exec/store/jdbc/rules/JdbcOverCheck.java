@@ -2,7 +2,7 @@ package com.dremio.exec.store.jdbc.rules;
 
 import com.dremio.exec.catalog.StoragePluginId;
 import com.dremio.exec.store.jdbc.conf.DialectConf;
-import com.dremio.exec.store.jdbc.legacy.JdbcDremioSqlDialect;
+import com.dremio.exec.store.jdbc.dialect.JdbcDremioSqlDialect;
 import com.google.common.collect.UnmodifiableIterator;
 import java.util.Iterator;
 import org.apache.calcite.rex.RexCall;

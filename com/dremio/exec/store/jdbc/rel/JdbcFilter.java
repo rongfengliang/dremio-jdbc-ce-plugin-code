@@ -4,7 +4,6 @@ import com.dremio.exec.catalog.StoragePluginId;
 import com.dremio.exec.planner.common.JdbcRelImpl;
 import com.dremio.exec.planner.common.MoreRelOptUtil.ContainsRexVisitor;
 import com.google.common.collect.ImmutableSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import org.apache.calcite.plan.CopyWithCluster;
@@ -27,18 +26,7 @@ public class JdbcFilter extends Filter implements JdbcRelImpl {
    public JdbcFilter(RelOptCluster cluster, RelTraitSet traitSet, RelNode input, RexNode condition, Set<CorrelationId> variablesSet, StoragePluginId pluginId) {
       super(cluster, traitSet, input, condition);
       this.pluginId = pluginId;
-      boolean foundContains = false;
-      Iterator var8 = this.getChildExps().iterator();
-
-      while(var8.hasNext()) {
-         RexNode rex = (RexNode)var8.next();
-         if (ContainsRexVisitor.hasContains(rex)) {
-            foundContains = true;
-            break;
-         }
-      }
-
-      this.foundContains = foundContains;
+      this.foundContains = ContainsRexVisitor.hasContains(condition);
       this.variablesSet = ImmutableSet.copyOf(variablesSet);
    }
 

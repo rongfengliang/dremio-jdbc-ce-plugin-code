@@ -5,8 +5,8 @@ import com.dremio.exec.calcite.logical.JdbcCrel;
 import com.dremio.exec.catalog.StoragePluginId;
 import com.dremio.exec.planner.logical.JoinRel;
 import com.dremio.exec.planner.logical.Rel;
+import com.dremio.exec.store.jdbc.dialect.JdbcDremioSqlDialect;
 import com.dremio.exec.store.jdbc.dialect.SourceTypeDescriptor;
-import com.dremio.exec.store.jdbc.legacy.JdbcDremioSqlDialect;
 import com.dremio.exec.store.jdbc.rel.JdbcJoin;
 import com.google.common.annotations.VisibleForTesting;
 import java.math.BigDecimal;
@@ -156,8 +156,7 @@ public final class JdbcJoinRule extends JdbcBinaryConverterRule {
             return Pair.of(true, false);
          case ANY:
          case NULL:
-            switch(literal.getTypeName()) {
-            case NULL:
+            if (literal.getTypeName() == SqlTypeName.NULL) {
                return Pair.of(true, false);
             }
          default:

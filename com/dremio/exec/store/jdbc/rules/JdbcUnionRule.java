@@ -7,7 +7,7 @@ import com.dremio.exec.planner.common.SampleRelBase;
 import com.dremio.exec.planner.common.MoreRelOptUtil.SubsetRemover;
 import com.dremio.exec.planner.logical.Rel;
 import com.dremio.exec.planner.logical.UnionRel;
-import com.dremio.exec.store.jdbc.legacy.JdbcDremioSqlDialect;
+import com.dremio.exec.store.jdbc.dialect.JdbcDremioSqlDialect;
 import com.dremio.exec.store.jdbc.rel.JdbcUnion;
 import com.google.common.collect.ImmutableList;
 import org.apache.calcite.plan.RelOptRuleCall;
