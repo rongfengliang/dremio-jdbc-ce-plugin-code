@@ -4,6 +4,7 @@ import com.dremio.exec.catalog.conf.AuthenticationType;
 import com.dremio.exec.catalog.conf.DisplayMetadata;
 import com.dremio.exec.catalog.conf.EncryptionValidationMode;
 import com.dremio.exec.catalog.conf.NotMetadataImpacting;
+import com.dremio.exec.catalog.conf.Property;
 import com.dremio.exec.catalog.conf.Secret;
 import com.dremio.exec.catalog.conf.SourceType;
 import com.dremio.exec.store.jdbc.CloseableDataSource;
@@ -11,13 +12,10 @@ import com.dremio.exec.store.jdbc.DataSources;
 import com.dremio.exec.store.jdbc.JdbcPluginConfig;
 import com.dremio.exec.store.jdbc.JdbcPluginConfig.Builder;
 import com.dremio.exec.store.jdbc.dialect.PostgreSQLDialect;
-import com.dremio.exec.store.jdbc.dialect.arp.ArpDialect;
-import com.dremio.exec.store.jdbc.legacy.LegacyCapableJdbcConf;
-import com.dremio.exec.store.jdbc.legacy.LegacyDialect;
-import com.dremio.exec.store.jdbc.legacy.PostgreSQLLegacyDialect;
 import com.dremio.options.OptionManager;
 import com.dremio.security.CredentialsService;
 import com.dremio.security.PasswordCredentials;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -25,6 +23,7 @@ import io.protostuff.Tag;
 import java.io.IOException;
 import java.net.URI;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Properties;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
@@ -33,9 +32,10 @@ import javax.validation.constraints.NotBlank;
 @SourceType(
    value = "POSTGRES",
    label = "PostgreSQL",
-   uiConfig = "postgres-layout.json"
+   uiConfig = "postgres-layout.json",
+   externalQuerySupported = true
 )
-public class PostgresConf extends LegacyCapableJdbcConf<PostgresConf> {
+public class PostgresConf extends AbstractArpConf<PostgresConf> {
    private static final String ARP_FILENAME = "arp/implementation/postgresql-arp.yaml";
    private static final PostgreSQLDialect PG_ARP_DIALECT = (PostgreSQLDialect)AbstractArpConf.loadArpFile("arp/implementation/postgresql-arp.yaml", PostgreSQLDialect::new);
    private static final String DRIVER = "org.postgresql.Driver";
@@ -76,6 +76,7 @@ public class PostgresConf extends LegacyCapableJdbcConf<PostgresConf> {
    @DisplayMetadata(
       label = "Enable legacy dialect"
    )
+   @JsonIgnore
    public boolean useLegacyDialect = false;
    @Tag(9)
    @DisplayMetadata(
@@ -96,20 +97,41 @@ public class PostgresConf extends LegacyCapableJdbcConf<PostgresConf> {
    public String secretResourceUrl;
    @Tag(12)
    @NotMetadataImpacting
-   @DisplayMetadata(
-      label = "Grant External Query access (Warning: External Query allows users with the Can Query privilege on this source to query any table or view within the source)"
-   )
+   @JsonIgnore
    public boolean enableExternalQuery;
+   @Tag(13)
+   public List<Property> propertyList;
+   @Tag(14)
+   @DisplayMetadata(
+      label = "Maximum idle connections"
+   )
+   @NotMetadataImpacting
+   public int maxIdleConns;
+   @Tag(15)
+   @DisplayMetadata(
+      label = "Connection idle time (s)"
+   )
+   @NotMetadataImpacting
+   public int idleTimeSec;
+   @Tag(16)
+   @DisplayMetadata(
+      label = "Query timeout (s)"
+   )
+   @NotMetadataImpacting
+   public int queryTimeoutSec;
 
    public PostgresConf() {
       this.encryptionValidationMode = EncryptionValidationMode.CERTIFICATE_AND_HOSTNAME_VALIDATION;
       this.enableExternalQuery = false;
+      this.maxIdleConns = 8;
+      this.idleTimeSec = 60;
+      this.queryTimeoutSec = 0;
    }
 
    public JdbcPluginConfig buildPluginConfig(Builder configBuilder, CredentialsService credentialsService, OptionManager optionManager) {
       return configBuilder.withDialect(this.getDialect()).withDatasourceFactory(() -> {
          return this.newDataSource(credentialsService);
-      }).withShowOnlyConnDatabase(false).withFetchSize(this.fetchSize).withAllowExternalQuery(this.supportsExternalQuery(this.enableExternalQuery)).build();
+      }).withShowOnlyConnDatabase(false).withFetchSize(this.fetchSize).withQueryTimeout(this.queryTimeoutSec).build();
    }
 
    private CloseableDataSource newDataSource(CredentialsService credentialsService) throws SQLException {
@@ -130,7 +152,13 @@ public class PostgresConf extends LegacyCapableJdbcConf<PostgresConf> {
       }
 
       properties.setProperty("OpenSourceSubProtocolOverride", "true");
-      return DataSources.newGenericConnectionPoolDataSource("org.postgresql.Driver", this.toJdbcConnectionString(), this.username, credsFromCredentialsService != null ? credsFromCredentialsService.getPassword() : this.password, properties, DataSources.CommitMode.FORCE_MANUAL_COMMIT_MODE);
+      if (null != this.propertyList) {
+         this.propertyList.forEach((p) -> {
+            properties.put(p.name, p.value);
+         });
+      }
+
+      return DataSources.newGenericConnectionPoolDataSource("org.postgresql.Driver", this.toJdbcConnectionString(), this.username, credsFromCredentialsService != null ? credsFromCredentialsService.getPassword() : this.password, properties, DataSources.CommitMode.FORCE_MANUAL_COMMIT_MODE, this.maxIdleConns, (long)this.idleTimeSec);
    }
 
    private String toJdbcConnectionString() {
@@ -155,22 +183,8 @@ public class PostgresConf extends LegacyCapableJdbcConf<PostgresConf> {
       }
    }
 
-   protected LegacyDialect getLegacyDialect() {
-      return PostgreSQLLegacyDialect.INSTANCE;
-   }
-
-   protected ArpDialect getArpDialect() {
+   public PostgreSQLDialect getDialect() {
       return PG_ARP_DIALECT;
-   }
-
-   protected boolean getLegacyFlag() {
-      return this.useLegacyDialect;
-   }
-
-   public static PostgresConf newMessage() {
-      PostgresConf result = new PostgresConf();
-      result.useLegacyDialect = true;
-      return result;
    }
 
    @VisibleForTesting

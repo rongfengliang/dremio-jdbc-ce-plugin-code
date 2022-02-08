@@ -15,10 +15,7 @@ import java.util.List;
 import java.util.Optional;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rex.RexOver;
-import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.SqlDialect.CalendarPolicy;
 import org.apache.calcite.sql.dialect.MysqlSqlDialect;
 import org.slf4j.Logger;
@@ -38,15 +35,6 @@ public final class MySQLDialect extends ArpDialect {
 
    public CalendarPolicy getCalendarPolicy() {
       return MysqlSqlDialect.DEFAULT.getCalendarPolicy();
-   }
-
-   public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-      if (call.getKind() == SqlKind.FLOOR && call.operandCount() == 2) {
-         MysqlSqlDialect.DEFAULT.unparseCall(writer, call, leftPrec, rightPrec);
-      } else {
-         super.unparseCall(writer, call, leftPrec, rightPrec);
-      }
-
    }
 
    public boolean supportsLiteral(CompleteType type) {
@@ -78,15 +66,11 @@ public final class MySQLDialect extends ArpDialect {
       return false;
    }
 
-   public boolean supportsNestedAggregations() {
-      return false;
-   }
-
    public boolean coerceTimesToUTC() {
       return true;
    }
 
-   public TypeMapper getDataTypeMapper() {
+   public TypeMapper getDataTypeMapper(JdbcPluginConfig config) {
       return this.typeMapper;
    }
 
@@ -116,12 +100,12 @@ public final class MySQLDialect extends ArpDialect {
       }
 
       protected long getRowCount(List<String> tablePath) {
-         String sql = MessageFormat.format("SELECT TABLE_ROWS FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = {0} AND TABLE_NAME = {1} AND ENGINE <> ''InnoDB''", this.config.getDialect().quoteStringLiteral((String)tablePath.get(0)), this.config.getDialect().quoteStringLiteral((String)tablePath.get(1)));
+         String sql = MessageFormat.format("SELECT TABLE_ROWS FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = {0} AND TABLE_NAME = {1} AND ENGINE <> ''InnoDB''", this.getConfig().getDialect().quoteStringLiteral((String)tablePath.get(0)), this.getConfig().getDialect().quoteStringLiteral((String)tablePath.get(1)));
          Optional<Long> estimate = this.executeQueryAndGetFirstLong(sql);
          if (estimate.isPresent()) {
             return (Long)estimate.get();
          } else {
-            logger.debug("Row count estimate {} detected on table {}. Retrying with count_big query.", 1000000000L, this.getQuotedPath(tablePath));
+            logger.debug("Row count estimate not detected for table {}. Retrying with count query.", this.getQuotedPath(tablePath));
             return super.getRowCount(tablePath);
          }
       }

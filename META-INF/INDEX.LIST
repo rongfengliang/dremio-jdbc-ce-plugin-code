@@ -1,6 +1,6 @@
 JarIndex-Version: 1.0
 
-dremio-ce-jdbc-plugin-13.0.0-202101272034330307-20fb9275.jar
+dremio-ce-jdbc-plugin-20.0.0-202201050826310141-8cc7162b.jar
 META-INF
 META-INF/maven
 META-INF/maven/com.dremio.community.plugins
@@ -18,7 +18,6 @@ com/dremio/exec/store/jdbc/conf
 com/dremio/exec/store/jdbc/dialect
 com/dremio/exec/store/jdbc/dialect/arp
 com/dremio/exec/store/jdbc/dialect/arp/transformer
-com/dremio/exec/store/jdbc/legacy
 com/dremio/exec/store/jdbc/proto
 com/dremio/exec/store/jdbc/rel
 com/dremio/exec/store/jdbc/rel2sql
@@ -32,4 +31,5 @@ oracle-layout.json
 postgres-layout.json
 redshift-layout.json
 sabot-module.conf
+synapse-layout.json
 

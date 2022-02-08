@@ -9,8 +9,7 @@ metadata:
 
 syntax:
   identifier_quote: '"'
-  allows_boolean_literal: false
-  map_boolean_literal_to_bit: false
+  map_boolean_to_bit_expr: true
   inject_numeric_cast_project: true
   inject_approx_numeric_cast_project: true
 
@@ -67,7 +66,7 @@ data_types:
   - source:
       name: "DATE"
     dremio:
-      name: "timestamp"
+      name: "date"
   - source:
       name: "TIMESTAMP"
     dremio:
@@ -463,6 +462,23 @@ expressions:
     timezone_offset:
       enable: true
       format: "TZR"
+  numeric_formats:
+    digit:
+      enable: true
+      format: "9"
+    zero_digit:
+      enable: true
+      format: "0"
+    decimal:
+      enable: true
+      format: "."
+    group_separator:
+      enable: true
+      format: ","
+    exponent_separator:
+      enable: false
+    quote_character:
+      format: '"'
   operators:
   - names:
     - "-"
@@ -715,7 +731,7 @@ expressions:
       - "timestamp"
       - "interval_year_month"
       return: "timestamp"
-      rewrite: "CASE WHEN MOD(EXTRACT(YEAR FROM {1}), 400) = 0 OR (MOD(EXTRACT(YEAR FROM {1}), 100) <> 0 AND MOD(EXTRACT(YEAR FROM {1}), 4) = 0) THEN ({0} - {1}) ELSE CASE WHEN EXTRACT(MONTH FROM {0}) = 2 AND EXTRACT(DAY FROM {0}) = 29 THEN {0} - INTERVAL ''1'' DAY - {1} ELSE ({0} - {1}) END END "
+      rewrite: "CASE WHEN MOD(EXTRACT(YEAR FROM {1}), 400) = 0 OR (MOD(EXTRACT(YEAR FROM {1}), 100) <> 0 AND MOD(EXTRACT(YEAR FROM {1}), 4) = 0) THEN ({0} - {1}) ELSE CASE WHEN EXTRACT(MONTH FROM {0}) = 2 AND EXTRACT(DAY FROM {0}) = 29 THEN {0} - INTERVAL ''1'' DAY - {1} ELSE ({0} - {1}) END END"
     - args:
       - "date"
       - "interval_day_second"
@@ -728,12 +744,12 @@ expressions:
       - "date"
       - "interval_year_month"
       return: "date"
-      rewrite: "CASE WHEN MOD(EXTRACT(YEAR FROM {1}), 400) = 0 OR (MOD(EXTRACT(YEAR FROM {1}), 100) <> 0 AND MOD(EXTRACT(YEAR FROM {1}), 4) = 0) THEN ({0} - {1}) ELSE CASE WHEN EXTRACT(MONTH FROM {0}) = 2 AND EXTRACT(DAY FROM {0}) = 29 THEN {0} - INTERVAL ''1'' DAY - {1} ELSE ({0} - {1}) END END "
+      rewrite: "CASE WHEN MOD(EXTRACT(YEAR FROM {1}), 400) = 0 OR (MOD(EXTRACT(YEAR FROM {1}), 100) <> 0 AND MOD(EXTRACT(YEAR FROM {1}), 4) = 0) THEN ({0} - {1}) ELSE CASE WHEN EXTRACT(MONTH FROM {0}) = 2 AND EXTRACT(DAY FROM {0}) = 29 THEN {0} - INTERVAL ''1'' DAY - {1} ELSE ({0} - {1}) END END"
     - args:
       - "date"
       - "interval_year_month"
       return: "timestamp"
-      rewrite: "CASE WHEN MOD(EXTRACT(YEAR FROM {1}), 400) = 0 OR (MOD(EXTRACT(YEAR FROM {1}), 100) <> 0 AND MOD(EXTRACT(YEAR FROM {1}), 4) = 0) THEN ({0} - {1}) ELSE CASE WHEN EXTRACT(MONTH FROM {0}) = 2 AND EXTRACT(DAY FROM {0}) = 29 THEN {0} - INTERVAL ''1'' DAY - {1} ELSE ({0} - {1}) END END "
+      rewrite: "CASE WHEN MOD(EXTRACT(YEAR FROM {1}), 400) = 0 OR (MOD(EXTRACT(YEAR FROM {1}), 100) <> 0 AND MOD(EXTRACT(YEAR FROM {1}), 4) = 0) THEN ({0} - {1}) ELSE CASE WHEN EXTRACT(MONTH FROM {0}) = 2 AND EXTRACT(DAY FROM {0}) = 29 THEN {0} - INTERVAL ''1'' DAY - {1} ELSE ({0} - {1}) END END"
     - args:
       - "time"
       - "interval_day_second"
@@ -957,7 +973,7 @@ expressions:
       - "timestamp"
       - "interval_year_month"
       return: "timestamp"
-      rewrite: "CASE WHEN MOD(EXTRACT(YEAR FROM {1}), 400) = 0 OR (MOD(EXTRACT(YEAR FROM {1}), 100) <> 0 AND MOD(EXTRACT(YEAR FROM {1}), 4) = 0) THEN ({0} + {1}) ELSE CASE WHEN EXTRACT(MONTH FROM {0}) = 2 AND EXTRACT(DAY FROM {0}) = 29 THEN {0} - INTERVAL ''1'' DAY + {1} ELSE ({0} + {1}) END END "
+      rewrite: "CASE WHEN MOD(EXTRACT(YEAR FROM {1}), 400) = 0 OR (MOD(EXTRACT(YEAR FROM {1}), 100) <> 0 AND MOD(EXTRACT(YEAR FROM {1}), 4) = 0) THEN ({0} + {1}) ELSE CASE WHEN EXTRACT(MONTH FROM {0}) = 2 AND EXTRACT(DAY FROM {0}) = 29 THEN {0} - INTERVAL ''1'' DAY + {1} ELSE ({0} + {1}) END END"
     - args:
       - "date"
       - "interval_day_second"
@@ -970,12 +986,12 @@ expressions:
       - "date"
       - "interval_year_month"
       return: "date"
-      rewrite: "CASE WHEN MOD(EXTRACT(YEAR FROM {1}), 400) = 0 OR (MOD(EXTRACT(YEAR FROM {1}), 100) <> 0 AND MOD(EXTRACT(YEAR FROM {1}), 4) = 0) THEN ({0} + {1}) ELSE CASE WHEN EXTRACT(MONTH FROM {0}) = 2 AND EXTRACT(DAY FROM {0}) = 29 THEN {0} - INTERVAL ''1'' DAY + {1} ELSE ({0} + {1}) END END "
+      rewrite: "CASE WHEN MOD(EXTRACT(YEAR FROM {1}), 400) = 0 OR (MOD(EXTRACT(YEAR FROM {1}), 100) <> 0 AND MOD(EXTRACT(YEAR FROM {1}), 4) = 0) THEN ({0} + {1}) ELSE CASE WHEN EXTRACT(MONTH FROM {0}) = 2 AND EXTRACT(DAY FROM {0}) = 29 THEN {0} - INTERVAL ''1'' DAY + {1} ELSE ({0} + {1}) END END"
     - args:
       - "date"
       - "interval_year_month"
       return: "timestamp"
-      rewrite: "CASE WHEN MOD(EXTRACT(YEAR FROM {1}), 400) = 0 OR (MOD(EXTRACT(YEAR FROM {1}), 100) <> 0 AND MOD(EXTRACT(YEAR FROM {1}), 4) = 0) THEN ({0} + {1}) ELSE CASE WHEN EXTRACT(MONTH FROM {0}) = 2 AND EXTRACT(DAY FROM {0}) = 29 THEN {0} - INTERVAL ''1'' DAY + {1} ELSE ({0} + {1}) END END "
+      rewrite: "CASE WHEN MOD(EXTRACT(YEAR FROM {1}), 400) = 0 OR (MOD(EXTRACT(YEAR FROM {1}), 100) <> 0 AND MOD(EXTRACT(YEAR FROM {1}), 4) = 0) THEN ({0} + {1}) ELSE CASE WHEN EXTRACT(MONTH FROM {0}) = 2 AND EXTRACT(DAY FROM {0}) = 29 THEN {0} - INTERVAL ''1'' DAY + {1} ELSE ({0} + {1}) END END"
     - args:
       - "time"
       - "interval_day_second"
@@ -1525,7 +1541,7 @@ expressions:
       - "varchar"
       - "varchar"
       return: "varchar"
-      rewrite: "CASE WHEN {0} IS NULL OR {1} IS NULL THEN NULL ELSE CONCAT({0}, {1}) END "
+      rewrite: "CASE WHEN {0} IS NULL OR {1} IS NULL THEN NULL ELSE CONCAT({0}, {1}) END"
   - names:
     - "%"
     signatures:
@@ -1696,217 +1712,217 @@ expressions:
       - "boolean"
       - "boolean"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "varbinary"
       - "varbinary"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "date"
       - "date"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "decimal"
       - "decimal"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "integer"
       - "integer"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "bigint"
       - "bigint"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "integer"
       - "bigint"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "integer"
       - "decimal"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "bigint"
       - "integer"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "bigint"
       - "decimal"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "double"
       - "double"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "double"
       - "integer"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "integer"
       - "double"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "bigint"
       - "double"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "double"
       - "bigint"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "time"
       - "time"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "timestamp"
       - "timestamp"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "varchar"
       - "varchar"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "varchar"
       - "decimal"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (REGEXP_LIKE({0}, ''^[+\\-]?\\d+$'') AND {0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (REGEXP_LIKE({0}, ''^[+\\-]?\\d+$'') AND {0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "decimal"
       - "varchar"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (REGEXP_LIKE({1}, ''^[+\\-]?\\d+$'') AND {0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (REGEXP_LIKE({1}, ''^[+\\-]?\\d+$'') AND {0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "varchar"
       - "integer"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (REGEXP_LIKE({0}, ''^[+\\-]?\\d+$'') AND {0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (REGEXP_LIKE({0}, ''^[+\\-]?\\d+$'') AND {0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "integer"
       - "varchar"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (REGEXP_LIKE({1}, ''^[+\\-]?\\d+$'') AND {0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (REGEXP_LIKE({1}, ''^[+\\-]?\\d+$'') AND {0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "varchar"
       - "bigint"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (REGEXP_LIKE({0}, ''^[+\\-]?\\d+$'') AND {0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (REGEXP_LIKE({0}, ''^[+\\-]?\\d+$'') AND {0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "bigint"
       - "varchar"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (REGEXP_LIKE({1}, ''^[+\\-]?\\d+$'') AND {0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (REGEXP_LIKE({1}, ''^[+\\-]?\\d+$'') AND {0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "varchar"
       - "double"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (REGEXP_LIKE({0}, ''^[+\\-]?\\d+\\.?\\d*$'') AND {0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (REGEXP_LIKE({0}, ''^[+\\-]?\\d+\\.?\\d*$'') AND {0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "double"
       - "varchar"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (REGEXP_LIKE({1}, ''^[+\\-]?\\d+\\.?\\d*$'') AND {0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (REGEXP_LIKE({1}, ''^[+\\-]?\\d+\\.?\\d*$'') AND {0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "varchar"
       - "timestamp"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (REGEXP_LIKE({0}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') AND TO_TIMESTAMP({0}, ''YYYY-MM-DD hh24:mi:ss'') = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (REGEXP_LIKE({0}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') AND TO_TIMESTAMP({0}, ''YYYY-MM-DD hh24:mi:ss'') = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "timestamp"
       - "varchar"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (REGEXP_LIKE({1}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') AND {0} = TO_TIMESTAMP({1}, ''YYYY-MM-DD hh24:mi:ss'')) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (REGEXP_LIKE({1}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') AND {0} = TO_TIMESTAMP({1}, ''YYYY-MM-DD hh24:mi:ss'')) THEN 0 ELSE 1 END = 1"
     - args:
       - "varchar"
       - "time"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "time"
       - "varchar"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "varchar"
       - "date"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (REGEXP_LIKE({0}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') AND TO_TIMESTAMP({0}, ''YYYY-MM-DD hh24:mi:ss'') = CAST({1} AS TIMESTAMP)) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (REGEXP_LIKE({0}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') AND TO_TIMESTAMP({0}, ''YYYY-MM-DD hh24:mi:ss'') = CAST({1} AS TIMESTAMP)) THEN 0 ELSE 1 END = 1"
     - args:
       - "date"
       - "varchar"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (REGEXP_LIKE({1}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') AND CAST({0} AS TIMESTAMP) = TO_TIMESTAMP({1}, ''YYYY-MM-DD hh24:mi:ss'')) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (REGEXP_LIKE({1}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') AND CAST({0} AS TIMESTAMP) = TO_TIMESTAMP({1}, ''YYYY-MM-DD hh24:mi:ss'')) THEN 0 ELSE 1 END = 1"
     - args:
       - "boolean"
       - "varchar"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "varchar"
       - "boolean"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "float"
       - "float"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "float"
       - "integer"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "integer"
       - "float"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "float"
       - "bigint"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "bigint"
       - "float"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "float"
       - "double"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "double"
       - "float"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR ({0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "float"
       - "varchar"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (REGEXP_LIKE({1}, ''^[+\\-]?\\d+\\.?\\d*$'') AND {0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (REGEXP_LIKE({1}, ''^[+\\-]?\\d+\\.?\\d*$'') AND {0} = {1}) THEN 0 ELSE 1 END = 1"
     - args:
       - "varchar"
       - "float"
       return: "boolean"
-      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (REGEXP_LIKE({0}, ''^[+\\-]?\\d+\\.?\\d*$'') AND {0} = {1}) THEN 0 ELSE 1 END = 1 "
+      rewrite: "CASE WHEN ({0} IS NULL AND {1} IS NULL) OR (REGEXP_LIKE({0}, ''^[+\\-]?\\d+\\.?\\d*$'') AND {0} = {1}) THEN 0 ELSE 1 END = 1"
   - names:
     - "is not distinct from"
     signatures:
@@ -2285,22 +2301,22 @@ expressions:
       - "varchar"
       - "timestamp"
       return: "boolean"
-      rewrite: "CASE WHEN REGEXP_LIKE({0}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({0}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END = {1} "
+      rewrite: "CASE WHEN REGEXP_LIKE({0}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({0}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END = {1}"
     - args:
       - "varchar"
       - "date"
       return: "boolean"
-      rewrite: "CASE WHEN REGEXP_LIKE({0}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({0}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END = {1} "
+      rewrite: "CASE WHEN REGEXP_LIKE({0}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({0}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END = {1}"
     - args:
       - "timestamp"
       - "varchar"
       return: "boolean"
-      rewrite: "CASE WHEN REGEXP_LIKE({1}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({1}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END = {0} "
+      rewrite: "CASE WHEN REGEXP_LIKE({1}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({1}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END = {0}"
     - args:
       - "date"
       - "varchar"
       return: "boolean"
-      rewrite: "CASE WHEN REGEXP_LIKE({1}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({1}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END = {0} "
+      rewrite: "CASE WHEN REGEXP_LIKE({1}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({1}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END = {0}"
     - args:
       - "varchar"
       - "decimal"
@@ -2339,22 +2355,22 @@ expressions:
       - "varchar"
       - "timestamp"
       return: "boolean"
-      rewrite: "CASE WHEN REGEXP_LIKE({0}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({0}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END <> {1} "
+      rewrite: "CASE WHEN REGEXP_LIKE({0}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({0}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END <> {1}"
     - args:
       - "varchar"
       - "date"
       return: "boolean"
-      rewrite: "CASE WHEN REGEXP_LIKE({0}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({0}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END <> {1} "
+      rewrite: "CASE WHEN REGEXP_LIKE({0}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({0}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END <> {1}"
     - args:
       - "timestamp"
       - "varchar"
       return: "boolean"
-      rewrite: "CASE WHEN REGEXP_LIKE({1}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({1}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END <> {0} "
+      rewrite: "CASE WHEN REGEXP_LIKE({1}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({1}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END <> {0}"
     - args:
       - "date"
       - "varchar"
       return: "boolean"
-      rewrite: "CASE WHEN REGEXP_LIKE({1}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({1}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END <> {0} "
+      rewrite: "CASE WHEN REGEXP_LIKE({1}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({1}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END <> {0}"
     - args:
       - "varchar"
       - "decimal"
@@ -2392,22 +2408,22 @@ expressions:
       - "varchar"
       - "timestamp"
       return: "boolean"
-      rewrite: "CASE WHEN REGEXP_LIKE({0}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({0}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END > {1} "
+      rewrite: "CASE WHEN REGEXP_LIKE({0}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({0}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END > {1}"
     - args:
       - "varchar"
       - "date"
       return: "boolean"
-      rewrite: "CASE WHEN REGEXP_LIKE({0}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({0}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END > {1} "
+      rewrite: "CASE WHEN REGEXP_LIKE({0}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({0}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END > {1}"
     - args:
       - "timestamp"
       - "varchar"
       return: "boolean"
-      rewrite: "CASE WHEN REGEXP_LIKE({1}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({1}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END < {0} "
+      rewrite: "CASE WHEN REGEXP_LIKE({1}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({1}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END < {0}"
     - args:
       - "date"
       - "varchar"
       return: "boolean"
-      rewrite: "CASE WHEN REGEXP_LIKE({1}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({1}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END < {0} "
+      rewrite: "CASE WHEN REGEXP_LIKE({1}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({1}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END < {0}"
     - args:
       - "varchar"
       - "decimal"
@@ -2445,22 +2461,22 @@ expressions:
       - "varchar"
       - "timestamp"
       return: "boolean"
-      rewrite: "CASE WHEN REGEXP_LIKE({0}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({0}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END >= {1} "
+      rewrite: "CASE WHEN REGEXP_LIKE({0}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({0}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END >= {1}"
     - args:
       - "varchar"
       - "date"
       return: "boolean"
-      rewrite: "CASE WHEN REGEXP_LIKE({0}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({0}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END >= {1} "
+      rewrite: "CASE WHEN REGEXP_LIKE({0}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({0}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END >= {1}"
     - args:
       - "timestamp"
       - "varchar"
       return: "boolean"
-      rewrite: "CASE WHEN REGEXP_LIKE({1}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({1}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END <= {0} "
+      rewrite: "CASE WHEN REGEXP_LIKE({1}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({1}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END <= {0}"
     - args:
       - "date"
       - "varchar"
       return: "boolean"
-      rewrite: "CASE WHEN REGEXP_LIKE({1}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({1}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END <= {0} "
+      rewrite: "CASE WHEN REGEXP_LIKE({1}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({1}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END <= {0}"
     - args:
       - "varchar"
       - "decimal"
@@ -2498,22 +2514,22 @@ expressions:
       - "varchar"
       - "timestamp"
       return: "boolean"
-      rewrite: "CASE WHEN REGEXP_LIKE({0}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({0}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END < {1} "
+      rewrite: "CASE WHEN REGEXP_LIKE({0}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({0}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END < {1}"
     - args:
       - "varchar"
       - "date"
       return: "boolean"
-      rewrite: "CASE WHEN REGEXP_LIKE({0}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({0}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END < {1} "
+      rewrite: "CASE WHEN REGEXP_LIKE({0}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({0}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END < {1}"
     - args:
       - "timestamp"
       - "varchar"
       return: "boolean"
-      rewrite: "CASE WHEN REGEXP_LIKE({1}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({1}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END > {0} "
+      rewrite: "CASE WHEN REGEXP_LIKE({1}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({1}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END > {0}"
     - args:
       - "date"
       - "varchar"
       return: "boolean"
-      rewrite: "CASE WHEN REGEXP_LIKE({1}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({1}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END > {0} "
+      rewrite: "CASE WHEN REGEXP_LIKE({1}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({1}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END > {0}"
     - args:
       - "varchar"
       - "decimal"
@@ -2551,22 +2567,22 @@ expressions:
       - "varchar"
       - "timestamp"
       return: "boolean"
-      rewrite: "CASE WHEN REGEXP_LIKE({0}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({0}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END <= {1} "
+      rewrite: "CASE WHEN REGEXP_LIKE({0}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({0}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END <= {1}"
     - args:
       - "varchar"
       - "date"
       return: "boolean"
-      rewrite: "CASE WHEN REGEXP_LIKE({0}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({0}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END <= {1} "
+      rewrite: "CASE WHEN REGEXP_LIKE({0}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({0}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END <= {1}"
     - args:
       - "timestamp"
       - "varchar"
       return: "boolean"
-      rewrite: "CASE WHEN REGEXP_LIKE({1}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({1}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END >= {0} "
+      rewrite: "CASE WHEN REGEXP_LIKE({1}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({1}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END >= {0}"
     - args:
       - "date"
       - "varchar"
       return: "boolean"
-      rewrite: "CASE WHEN REGEXP_LIKE({1}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({1}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END >= {0} "
+      rewrite: "CASE WHEN REGEXP_LIKE({1}, ''^\\d+(\\-\\d'{'2'}')'{'2'}'( \\d+(:\\d'{'2'}')'{'2'}'(\\.\\d+)?)?$'') THEN TO_TIMESTAMP({1}, ''YYYY-MM-DD HH24:MI:SS.FF'') ELSE NULL END >= {0}"
     - args:
       - "varchar"
       - "decimal"
@@ -2791,7 +2807,6 @@ expressions:
   - names:
     - "to_char"
     signatures:
-    # Numeric TO_CHAR variations are not added as Dremio format strings don't match Oracle.
     - args:
       - "date"
       - "varchar"
@@ -2801,6 +2816,26 @@ expressions:
       rewrite: "TO_CHAR(TRUNC({0}), {1})"
     - args:
       - "timestamp"
+      - "varchar"
+      return: "varchar"
+    - args:
+      - "decimal"
+      - "varchar"
+      return: "varchar"
+    - args:
+      - "bigint"
+      - "varchar"
+      return: "varchar"
+    - args:
+      - "integer"
+      - "varchar"
+      return: "varchar"
+    - args:
+      - "double"
+      - "varchar"
+      return: "varchar"
+    - args:
+      - "float"
       - "varchar"
       return: "varchar"
   - names:
@@ -2956,18 +2991,31 @@ expressions:
     - args:
       - "decimal"
       return: "decimal"
+      rewrite: "CEIL({0})"
     - args:
       - "bigint"
       return: "bigint"
+      rewrite: "CEIL({0})"
     - args:
       - "double"
       return: "double"
+      rewrite: "CEIL({0})"
+    - args:
+      - "double"
+      return: "bigint"
+      rewrite: "CEIL({0})"
+    - args:
+      - "float"
+      return: "bigint"
+      rewrite: "CEIL({0})"
     - args:
       - "float"
       return: "float"
+      rewrite: "CEIL({0})"
     - args:
       - "integer"
       return: "integer"
+      rewrite: "CEIL({0})"
   - names:
     - "acos"
     signatures:
@@ -3061,23 +3109,23 @@ expressions:
     - args:
       - "decimal"
       return: "double"
-      rewrite: "CASE WHEN TAN({0}) = 0 THEN NULL ELSE 1/TAN({0}) END "
+      rewrite: "CASE WHEN TAN({0}) = 0 THEN NULL ELSE 1/TAN({0}) END"
     - args:
       - "bigint"
       return: "double"
-      rewrite: "CASE WHEN TAN({0}) = 0 THEN NULL ELSE 1/TAN({0}) END "
+      rewrite: "CASE WHEN TAN({0}) = 0 THEN NULL ELSE 1/TAN({0}) END"
     - args:
       - "double"
       return: "double"
-      rewrite: "CASE WHEN TAN({0}) = 0 THEN NULL ELSE 1/TAN({0}) END "
+      rewrite: "CASE WHEN TAN({0}) = 0 THEN NULL ELSE 1/TAN({0}) END"
     - args:
       - "float"
       return: "double"
-      rewrite: "CASE WHEN TAN({0}) = 0 THEN NULL ELSE 1/TAN({0}) END "
+      rewrite: "CASE WHEN TAN({0}) = 0 THEN NULL ELSE 1/TAN({0}) END"
     - args:
       - "integer"
       return: "double"
-      rewrite: "CASE WHEN TAN({0}) = 0 THEN NULL ELSE 1/TAN({0}) END "
+      rewrite: "CASE WHEN TAN({0}) = 0 THEN NULL ELSE 1/TAN({0}) END"
   - names:
     - "degrees"
     signatures:
@@ -4229,6 +4277,18 @@ expressions:
   - names:
     - "to_date"
     signatures:
+      - return: "date"
+        args:
+          - "date"
+        rewrite: "{0}"
+      - return: "date"
+        args:
+          - "timestamp"
+        rewrite: "CAST({0} AS DATE)"
+      - return: "date"
+        args:
+          - "varchar"
+        rewrite: "CAST({0} AS DATE)"
       - return: "timestamp"
         args:
           - "varchar"
@@ -4338,10 +4398,12 @@ expressions:
       rewrite: "LENGTH({0})"
   - names:
     - "lower"
+    - "lcase"
     signatures:
     - args:
       - "varchar"
       return: "varchar"
+      rewrite: "LOWER({0})"
   - names:
     - "replace"
     signatures:
@@ -4546,10 +4608,12 @@ expressions:
       return: "varchar"
   - names:
     - "upper"
+    - "ucase"
     signatures:
     - args:
       - "varchar"
       return: "varchar"
+      rewrite: "UPPER({0})"
 
   variable_length_operators:
     - names:

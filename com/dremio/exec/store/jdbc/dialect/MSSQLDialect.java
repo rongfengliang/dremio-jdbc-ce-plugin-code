@@ -1,8 +1,8 @@
 package com.dremio.exec.store.jdbc.dialect;
 
-import com.dremio.common.expression.CompleteType;
 import com.dremio.exec.planner.sql.handlers.OverUtils;
 import com.dremio.exec.store.jdbc.JdbcPluginConfig;
+import com.dremio.exec.store.jdbc.JdbcSchemaFetcher;
 import com.dremio.exec.store.jdbc.dialect.arp.ArpDialect;
 import com.dremio.exec.store.jdbc.dialect.arp.ArpYaml;
 import com.dremio.exec.store.jdbc.rel.JdbcSort;
@@ -13,12 +13,10 @@ import com.google.common.collect.UnmodifiableIterator;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.text.MessageFormat;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TimeZone;
-import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.core.Window.Group;
@@ -41,7 +39,6 @@ import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlSelectOperator;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.SqlCollation.Coercibility;
-import org.apache.calcite.sql.dialect.MssqlSqlDialect;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.slf4j.Logger;
@@ -52,26 +49,14 @@ public class MSSQLDialect extends ArpDialect {
    private static final int MSSQL_MAX_VARCHAR_LENGTH = 8000;
    private static final String DOUBLE_PRECISION = "DOUBLE PRECISION";
    private static final boolean DISABLE_PUSH_COLLATION;
-   private final SqlCollation MSSQL_BINARY_COLLATION;
+   private static final SqlCollation MSSQL_BINARY_COLLATION;
 
    public MSSQLDialect(ArpYaml yaml) {
       super(yaml);
-      this.MSSQL_BINARY_COLLATION = new SqlCollation(Coercibility.NONE) {
-         private static final long serialVersionUID = 1L;
-
-         public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
-            writer.keyword("COLLATE");
-            writer.keyword("Latin1_General_BIN2");
-         }
-      };
    }
 
    public void unparseDateTimeLiteral(SqlWriter writer, SqlAbstractDateTimeLiteral literal, int leftPrec, int rightPrec) {
       writer.literal("'" + literal.toFormattedString() + "'");
-   }
-
-   public boolean supportsNestedAggregations() {
-      return false;
    }
 
    protected SqlNode emulateNullDirectionWithIsNull(SqlNode node, boolean nullsFirst, boolean desc) {
@@ -79,24 +64,8 @@ public class MSSQLDialect extends ArpDialect {
    }
 
    public boolean supportsSort(Sort e) {
-      boolean hasOrderBy = false;
-      if (e.getCollationList() != null && !e.getCollationList().isEmpty()) {
-         Iterator var3 = e.getCollationList().iterator();
-
-         while(var3.hasNext()) {
-            RelCollation collation = (RelCollation)var3.next();
-            if (!collation.getFieldCollations().isEmpty()) {
-               hasOrderBy = true;
-               break;
-            }
-         }
-      }
-
+      boolean hasOrderBy = e.getCollation() != null && !e.getCollation().getFieldCollations().isEmpty();
       return !hasOrderBy && !JdbcSort.isOffsetEmpty(e) ? false : super.supportsSort(e);
-   }
-
-   public boolean supportsLiteral(CompleteType type) {
-      return CompleteType.BIT.equals(type) ? false : super.supportsLiteral(type);
    }
 
    public SqlNode getCastSpec(RelDataType type) {
@@ -142,13 +111,11 @@ public class MSSQLDialect extends ArpDialect {
 
             keywords.add(SqlSelectExtraKeyword.TOP.symbol(SqlParserPos.ZERO));
             keywords.add(select.getFetch());
-            SqlSelect modifiedSelect = SqlSelectOperator.INSTANCE.createCall(keywords, select.getSelectList(), select.getFrom(), select.getWhere(), select.getGroup(), select.getHaving(), select.getWindowList(), select.getOrderList(), (SqlNode)null, (SqlNode)null, SqlParserPos.ZERO);
+            SqlSelect modifiedSelect = SqlSelectOperator.INSTANCE.createCall(keywords, select.getSelectList(), select.getFrom(), select.getWhere(), select.getGroup(), select.getHaving(), select.getWindowList(), select.getOrderList(), (SqlNode)null, (SqlNode)null, (SqlNodeList)null, SqlParserPos.ZERO);
             super.unparseCall(writer, modifiedSelect, leftPrec, rightPrec);
          }
-      } else if (op != SqlStdOperatorTable.SUBSTRING && (call.getKind() != SqlKind.FLOOR || call.operandCount() != 2) && op != SqlStdOperatorTable.TIMESTAMP_ADD) {
-         super.unparseCall(writer, call, leftPrec, rightPrec);
       } else {
-         MssqlSqlDialect.DEFAULT.unparseCall(writer, call, leftPrec, rightPrec);
+         super.unparseCall(writer, call, leftPrec, rightPrec);
       }
 
    }
@@ -157,8 +124,8 @@ public class MSSQLDialect extends ArpDialect {
       return new MSSQLRelToSqlConverter(this);
    }
 
-   public ArpDialect.ArpSchemaFetcher newSchemaFetcher(JdbcPluginConfig config) {
-      return new MSSQLDialect.MSSQLSchemaFetcher(config.getHiddenSchemas(), config);
+   public JdbcSchemaFetcher newSchemaFetcher(JdbcPluginConfig config) {
+      return new MSSQLDialect.MSSQLSchemaFetcher(config);
    }
 
    public boolean requiresTrimOnChars() {
@@ -198,7 +165,7 @@ public class MSSQLDialect extends ArpDialect {
          switch(kind) {
          case LITERAL:
          case IDENTIFIER:
-            return this.MSSQL_BINARY_COLLATION;
+            return MSSQL_BINARY_COLLATION;
          default:
             return null;
          }
@@ -208,35 +175,43 @@ public class MSSQLDialect extends ArpDialect {
    static {
       SUPPORTED_WINDOW_AGG_CALLS = ImmutableSet.of(SqlStdOperatorTable.COUNT, SqlStdOperatorTable.LAST_VALUE, SqlStdOperatorTable.FIRST_VALUE);
       DISABLE_PUSH_COLLATION = Boolean.getBoolean("dremio.jdbc.mssql.push-collation.disable");
+      MSSQL_BINARY_COLLATION = new SqlCollation(Coercibility.NONE) {
+         private static final long serialVersionUID = 1L;
+
+         public void unparse(SqlWriter writer) {
+            writer.keyword("COLLATE");
+            writer.keyword("Latin1_General_BIN2");
+         }
+      };
    }
 
    private static final class MSSQLSchemaFetcher extends ArpDialect.ArpSchemaFetcher {
       private static final Logger logger = LoggerFactory.getLogger(MSSQLDialect.MSSQLSchemaFetcher.class);
 
-      private MSSQLSchemaFetcher(Set<String> hiddenSchemas, JdbcPluginConfig config) {
+      private MSSQLSchemaFetcher(JdbcPluginConfig config) {
          super("SELECT * FROM @AllTables WHERE 1=1", config, true, false);
       }
 
       protected String filterQuery(String query, DatabaseMetaData metaData) throws SQLException {
-         return "SET NOCOUNT ON;\nDECLARE @dbname nvarchar(128), @litdbname nvarchar(128)\nDECLARE @AllTables table (CAT sysname, SCH sysname, NME sysname)\nBEGIN\n    DECLARE DBCursor CURSOR FOR SELECT name FROM sys.sysdatabases WHERE HAS_DBACCESS(name) = 1\n    OPEN DBCursor\n    FETCH NEXT FROM DBCursor INTO @dbname\n    WHILE @@FETCH_STATUS = 0\n    BEGIN\n        IF @dbname <> 'tempdb' BEGIN\n            SET @litdbname = REPLACE(@dbname, '''', '''''')\n            INSERT INTO @AllTables (CAT, SCH, NME) \n                EXEC('SELECT ''' + @litdbname + ''' CAT, SCH, NME FROM (SELECT s.name SCH, t.name AS NME FROM [' + @dbname + '].sys.tables t with (nolock) INNER JOIN [' + @dbname + '].sys.schemas s with (nolock) ON t.schema_id=s.schema_id UNION ALL SELECT s.name SCH, v.name AS NME FROM [' + @dbname + '].sys.views v with (nolock) INNER JOIN [' + @dbname + '].sys.schemas s with (nolock) ON v.schema_id=s.schema_id) t  WHERE SCH NOT IN (''" + String.format("%s", Joiner.on("'',''").join(this.config.getHiddenSchemas())) + "'')')\n        END\n        FETCH NEXT FROM DBCursor INTO @dbname\n    END\n    CLOSE DBCursor\n    DEALLOCATE DBCursor\n" + super.filterQuery(query, metaData) + "\nEND;\nSET NOCOUNT OFF;";
+         return "SET NOCOUNT ON;\nDECLARE @dbname nvarchar(128), @litdbname nvarchar(128)\nDECLARE @AllTables table (CAT sysname, SCH sysname, NME sysname)\nBEGIN\n    DECLARE DBCursor CURSOR FOR SELECT name FROM sys.sysdatabases WHERE HAS_DBACCESS(name) = 1\n    OPEN DBCursor\n    FETCH NEXT FROM DBCursor INTO @dbname\n    WHILE @@FETCH_STATUS = 0\n    BEGIN\n        IF @dbname <> 'tempdb' BEGIN\n            SET @litdbname = REPLACE(@dbname, '''', '''''')\n            INSERT INTO @AllTables (CAT, SCH, NME) \n                EXEC('SELECT ''' + @litdbname + ''' CAT, SCH, NME FROM (SELECT s.name SCH, t.name AS NME FROM [' + @dbname + '].sys.tables t with (nolock) INNER JOIN [' + @dbname + '].sys.schemas s with (nolock) ON t.schema_id=s.schema_id UNION ALL SELECT s.name SCH, v.name AS NME FROM [' + @dbname + '].sys.views v with (nolock) INNER JOIN [' + @dbname + '].sys.schemas s with (nolock) ON v.schema_id=s.schema_id) t  WHERE SCH NOT IN (''" + String.format("%s", Joiner.on("'',''").join(this.getConfig().getHiddenSchemas())) + "'')')\n        END\n        FETCH NEXT FROM DBCursor INTO @dbname\n    END\n    CLOSE DBCursor\n    DEALLOCATE DBCursor\n" + super.filterQuery(query, metaData) + "\nEND;\nSET NOCOUNT OFF;";
       }
 
       public long getRowCount(List<String> tablePath) {
-         String sql = MessageFormat.format("SELECT p.rows \nFROM {0}.sys.tables AS tbl\nINNER JOIN {0}.sys.indexes AS idx ON idx.object_id = tbl.object_id and idx.index_id < 2\nINNER JOIN {0}.sys.partitions AS p ON p.object_id=tbl.object_id\nAND p.index_id=idx.index_id\nWHERE ((tbl.name={2}\nAND SCHEMA_NAME(tbl.schema_id)={1}))", this.config.getDialect().quoteIdentifier((String)tablePath.get(0)), this.config.getDialect().quoteStringLiteral((String)tablePath.get(1)), this.config.getDialect().quoteStringLiteral((String)tablePath.get(2)));
+         String sql = MessageFormat.format("SELECT p.rows \nFROM {0}.sys.tables AS tbl\nINNER JOIN {0}.sys.indexes AS idx ON idx.object_id = tbl.object_id and idx.index_id < 2\nINNER JOIN {0}.sys.partitions AS p ON p.object_id=tbl.object_id\nAND p.index_id=idx.index_id\nWHERE ((tbl.name={2}\nAND SCHEMA_NAME(tbl.schema_id)={1}))", this.getConfig().getDialect().quoteIdentifier((String)tablePath.get(0)), this.getConfig().getDialect().quoteStringLiteral((String)tablePath.get(1)), this.getConfig().getDialect().quoteStringLiteral((String)tablePath.get(2)));
          String quotedPath = this.getQuotedPath(tablePath);
          Optional<Long> estimate = this.executeQueryAndGetFirstLong(sql);
          if (estimate.isPresent()) {
             return (Long)estimate.get();
          } else {
-            logger.debug("Row count estimate {} detected on table {}. Retrying with count_big query.", 1000000000L, quotedPath);
+            logger.debug("Row count estimate not detected for table {}. Retrying with count_big query.", quotedPath);
             Optional<Long> fallbackEstimate = this.executeQueryAndGetFirstLong("SELECT COUNT_BIG(*) FROM " + quotedPath);
             return (Long)fallbackEstimate.orElse(1000000000L);
          }
       }
 
       // $FF: synthetic method
-      MSSQLSchemaFetcher(Set x0, JdbcPluginConfig x1, Object x2) {
-         this(x0, x1);
+      MSSQLSchemaFetcher(JdbcPluginConfig x0, Object x1) {
+         this(x0);
       }
    }
 }

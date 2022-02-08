@@ -16,7 +16,7 @@ public final class AutomaticTypeMapper extends TypeMapper {
    protected List<JdbcToFieldMapping> mapSourceToArrowFields(TypeMapper.UnrecognizedTypeCallback unrecognizedTypeCallback, TypeMapper.AddPropertyCallback addColumnPropertyCallback, List<SourceTypeDescriptor> columnInfo, boolean mapSkippedColumnsAsNullType) {
       Builder<JdbcToFieldMapping> builder = ImmutableList.builder();
       int jdbcColumnIndex = 0;
-      JdbcTypeConverter converter = this.useDecimalToDoubleMapping ? new JdbcTypeConverter.DecimalToDoubleJdbcTypeConverter() : new JdbcTypeConverter();
+      JdbcTypeConverter converter = this.useDecimalToDoubleMapping() ? new JdbcTypeConverter.DecimalToDoubleJdbcTypeConverter() : new JdbcTypeConverter();
       Iterator var8 = columnInfo.iterator();
 
       while(var8.hasNext()) {

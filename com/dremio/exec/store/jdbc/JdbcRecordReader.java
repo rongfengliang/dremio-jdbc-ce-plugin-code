@@ -48,6 +48,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import javax.sql.DataSource;
@@ -92,15 +93,17 @@ public final class JdbcRecordReader extends AbstractRecordReader {
    private final Collection<List<String>> tableList;
    private final Set<String> skippedColumns;
    private final int maxCellSize;
+   private final int timeoutSeconds;
    private static final String CANCEL_ERROR_MESSAGE = "Call to cancel query on RDBMs source failed with error: {}";
 
-   public JdbcRecordReader(OperatorContext context, DataSource source, String sql, String storagePluginName, List<SchemaPath> columns, int fetchSize, ListenableFuture<Boolean> cancelled, SourceCapabilities capabilities, TypeMapper typeMapper, Collection<List<String>> tableList, Set<String> skippedColumns) {
+   public JdbcRecordReader(OperatorContext context, DataSource source, String sql, JdbcPluginConfig config, List<SchemaPath> columns, ListenableFuture<Boolean> cancelled, SourceCapabilities capabilities, TypeMapper typeMapper, Collection<List<String>> tableList, Set<String> skippedColumns) {
       super(context, columns);
       this.source = source;
       this.sql = sql;
-      this.storagePluginName = storagePluginName;
+      this.storagePluginName = config.getSourceName();
       this.columns = columns;
-      this.fetchSize = fetchSize;
+      this.fetchSize = config.getFetchSize();
+      this.timeoutSeconds = config.getQueryTimeout();
       this.needsTrailingPaddingTrim = capabilities.getCapability(JdbcStoragePlugin.REQUIRE_TRIMS_ON_CHARS);
       this.coerceTimesToUTC = capabilities.getCapability(JdbcStoragePlugin.COERCE_TIMES_TO_UTC);
       this.coerceTimestampsToUTC = capabilities.getCapability(JdbcStoragePlugin.COERCE_TIMESTAMPS_TO_UTC);
@@ -159,11 +162,19 @@ public final class JdbcRecordReader extends AbstractRecordReader {
 
       try {
          this.connection = this.source.getConnection();
+         if (null != this.context) {
+            try {
+               this.connection.setNetworkTimeout(this.context.getExecutor(), Ints.saturatedCast(TimeUnit.SECONDS.toMillis((long)this.timeoutSeconds)));
+            } catch (Throwable var9) {
+            }
+         }
+
          this.statement = this.connection.createStatement();
          if (this.cancelled.get()) {
             throw StoragePluginUtils.message(UserException.ioExceptionError(new CancellationException()), this.storagePluginName, "Query was cancelled.", new Object[0]).addContext("sql", this.sql).build(logger);
          } else {
             this.statement.setFetchSize(fetchSize);
+            this.statement.setQueryTimeout(this.timeoutSeconds);
             this.resultSet = this.statement.executeQuery(this.sql);
             ResultSetMetaData meta = this.resultSet.getMetaData();
             Builder<ValueVector> vectorBuilder = ImmutableList.builder();
@@ -179,10 +190,10 @@ public final class JdbcRecordReader extends AbstractRecordReader {
             this.vectors = vectorBuilder.build();
             this.copiers = copierBuilder.build();
          }
-      } catch (SQLException var9) {
-         throw StoragePluginUtils.message(UserException.dataReadError(var9), this.storagePluginName, var9.getMessage(), new Object[0]).addContext("sql", this.sql).build(logger);
-      } catch (SchemaChangeException var10) {
-         throw UserException.dataReadError(var10).message("The JDBC storage plugin failed while trying setup the SQL query. ", new Object[0]).addContext("sql", this.sql).addContext("plugin", this.storagePluginName).build(logger);
+      } catch (SQLException var10) {
+         throw StoragePluginUtils.message(UserException.dataReadError(var10), this.storagePluginName, var10.getMessage(), new Object[0]).addContext("sql", this.sql).build(logger);
+      } catch (SchemaChangeException var11) {
+         throw UserException.dataReadError(var11).message("The JDBC storage plugin failed while trying setup the SQL query. ", new Object[0]).addContext("sql", this.sql).addContext("plugin", this.storagePluginName).build(logger);
       }
    }
 

@@ -4,7 +4,7 @@ import com.dremio.exec.calcite.logical.JdbcCrel;
 import com.dremio.exec.catalog.StoragePluginId;
 import com.dremio.exec.planner.logical.Rel;
 import com.dremio.exec.planner.logical.WindowRel;
-import com.dremio.exec.store.jdbc.legacy.JdbcDremioSqlDialect;
+import com.dremio.exec.store.jdbc.dialect.JdbcDremioSqlDialect;
 import com.dremio.exec.store.jdbc.rel.JdbcWindow;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;

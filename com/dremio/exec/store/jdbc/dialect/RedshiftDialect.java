@@ -17,12 +17,9 @@ import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.core.Window.Group;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexOver;
-import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlWriter;
-import org.apache.calcite.sql.dialect.RedshiftSqlDialect;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
 public final class RedshiftDialect extends ArpDialect {
@@ -31,10 +28,6 @@ public final class RedshiftDialect extends ArpDialect {
    public RedshiftDialect(ArpYaml yaml) {
       super(yaml);
       this.typeMapper = new RedshiftDialect.RedshiftTypeMapper(yaml);
-   }
-
-   public boolean supportsNestedAggregations() {
-      return false;
    }
 
    public boolean supportsFunction(SqlOperator operator, RelDataType type, List<RelDataType> paramTypes) {
@@ -52,15 +45,6 @@ public final class RedshiftDialect extends ArpDialect {
 
    protected boolean requiresAliasForFromItems() {
       return true;
-   }
-
-   public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-      if (call.getKind() == SqlKind.FLOOR && call.operandCount() == 2) {
-         RedshiftSqlDialect.DEFAULT.unparseCall(writer, call, leftPrec, rightPrec);
-      } else {
-         super.unparseCall(writer, call, leftPrec, rightPrec);
-      }
-
    }
 
    public SqlNode emulateNullDirection(SqlNode node, boolean nullsFirst, boolean desc) {
@@ -106,7 +90,7 @@ public final class RedshiftDialect extends ArpDialect {
       return !CompleteType.INTERVAL_DAY_SECONDS.equals(type) && !CompleteType.INTERVAL_YEAR_MONTHS.equals(type) ? super.supportsLiteral(type) : true;
    }
 
-   public TypeMapper getDataTypeMapper() {
+   public TypeMapper getDataTypeMapper(JdbcPluginConfig config) {
       return this.typeMapper;
    }
 

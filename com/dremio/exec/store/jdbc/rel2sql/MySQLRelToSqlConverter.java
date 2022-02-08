@@ -5,7 +5,7 @@ import com.dremio.common.rel2sql.DremioRelToSqlConverter.Result;
 import com.dremio.common.rel2sql.SqlImplementor.Clause;
 import com.dremio.exec.catalog.StoragePluginId;
 import com.dremio.exec.planner.common.JdbcRelImpl;
-import com.dremio.exec.store.jdbc.legacy.JdbcDremioSqlDialect;
+import com.dremio.exec.store.jdbc.dialect.JdbcDremioSqlDialect;
 import com.dremio.exec.store.jdbc.rel.JdbcFilter;
 import com.dremio.exec.store.jdbc.rel.JdbcSort;
 import com.dremio.exec.store.jdbc.rel.JdbcUnion;
@@ -19,6 +19,7 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
+import org.apache.calcite.rel.core.Union;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexProgram;
@@ -50,7 +51,7 @@ public class MySQLRelToSqlConverter extends JdbcDremioRelToSqlConverter {
 
    public Result visit(Join e) {
       if (e.getJoinType() != JoinRelType.FULL) {
-         return (Result)super.visit(e);
+         return (Result)super.visit((Join)e);
       } else {
          Join leftJoin = duplicateJoinAndChangeType(e, JoinRelType.LEFT);
          Join rightJoin = duplicateJoinAndChangeType(e, JoinRelType.RIGHT);
@@ -73,7 +74,7 @@ public class MySQLRelToSqlConverter extends JdbcDremioRelToSqlConverter {
 
          List<RelNode> nodes = Lists.newArrayList(new RelNode[]{(RelNode)leftUnionOp, (RelNode)rightUnionOp});
          JdbcUnion union = new JdbcUnion(e.getCluster(), e.getTraitSet(), nodes, true, pluginId);
-         return (Result)super.visit(union);
+         return (Result)super.visit((Union)union);
       }
    }
 

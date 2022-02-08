@@ -5,9 +5,9 @@ import com.dremio.common.exceptions.UserException;
 import com.dremio.exec.record.BatchSchema;
 import com.dremio.exec.store.jdbc.JdbcFetcherProto.GetExternalQueryMetadataRequest;
 import com.dremio.exec.store.jdbc.JdbcFetcherProto.GetExternalQueryMetadataResponse;
+import com.dremio.exec.store.jdbc.dialect.JdbcDremioSqlDialect;
 import com.dremio.exec.store.jdbc.dialect.JdbcToFieldMapping;
 import com.dremio.exec.store.jdbc.dialect.TypeMapper;
-import com.dremio.exec.store.jdbc.legacy.JdbcDremioSqlDialect;
 import com.dremio.exec.tablefunctions.DremioCalciteResource;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.primitives.Ints;
@@ -42,10 +42,10 @@ public final class JdbcExternalQueryMetadataUtility {
    private JdbcExternalQueryMetadataUtility() {
    }
 
-   public static GetExternalQueryMetadataResponse getBatchSchema(DataSource source, JdbcDremioSqlDialect dialect, GetExternalQueryMetadataRequest request, String sourceName) {
+   public static GetExternalQueryMetadataResponse getBatchSchema(DataSource source, JdbcDremioSqlDialect dialect, GetExternalQueryMetadataRequest request, JdbcPluginConfig config) {
       ExecutorService executor = Executors.newSingleThreadExecutor(new NamedThreadFactory(Thread.currentThread().getName() + ":jdbc-eq-metadata"));
       Callable<GetExternalQueryMetadataResponse> retrieveMetadata = () -> {
-         return getExternalQueryMetadataFromSource(source, dialect, request, sourceName);
+         return getExternalQueryMetadataFromSource(source, dialect, request, config);
       };
       Future<GetExternalQueryMetadataResponse> future = executor.submit(retrieveMetadata);
       return handleMetadataFuture(future, executor, METADATA_RETRIEVAL_TIMEOUT_MILLISECONDS);
@@ -76,7 +76,7 @@ public final class JdbcExternalQueryMetadataUtility {
       return var4;
    }
 
-   private static GetExternalQueryMetadataResponse getExternalQueryMetadataFromSource(DataSource source, JdbcDremioSqlDialect dialect, GetExternalQueryMetadataRequest request, String sourceName) throws SQLException {
+   private static GetExternalQueryMetadataResponse getExternalQueryMetadataFromSource(DataSource source, JdbcDremioSqlDialect dialect, GetExternalQueryMetadataRequest request, JdbcPluginConfig config) throws SQLException {
       Connection conn = source.getConnection();
       Throwable var5 = null;
 
@@ -89,10 +89,10 @@ public final class JdbcExternalQueryMetadataUtility {
             stmt.setQueryTimeout(Ints.saturatedCast(TimeUnit.MILLISECONDS.toSeconds(METADATA_RETRIEVAL_TIMEOUT_MILLISECONDS)));
             ResultSetMetaData metaData = stmt.getMetaData();
             if (metaData == null) {
-               throw newValidationError(DremioCalciteResource.DREMIO_CALCITE_RESOURCE.externalQueryInvalidError(sourceName));
+               throw newValidationError(DremioCalciteResource.DREMIO_CALCITE_RESOURCE.externalQueryInvalidError(config.getSourceName()));
             }
 
-            List<JdbcToFieldMapping> mappings = dialect.getDataTypeMapper().mapJdbcToArrowFields((TypeMapper.UnrecognizedTypeMarker)null, (TypeMapper.AddPropertyCallback)null, (TypeMapper.InvalidMetaDataCallback)((message) -> {
+            List<JdbcToFieldMapping> mappings = dialect.getDataTypeMapper(config).mapJdbcToArrowFields((TypeMapper.UnrecognizedTypeMarker)null, (TypeMapper.AddPropertyCallback)null, (TypeMapper.InvalidMetaDataCallback)((message) -> {
                throw UserException.invalidMetadataError().addContext(message).buildSilently();
             }), (Connection)conn, (ResultSetMetaData)metaData, (Set)null, true);
             ByteString bytes = ByteString.copyFrom(BatchSchema.newBuilder().addFields((Iterable)mappings.stream().map(JdbcToFieldMapping::getField).collect(Collectors.toList())).build().serialize());

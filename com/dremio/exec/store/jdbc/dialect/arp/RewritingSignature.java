@@ -40,6 +40,7 @@ class RewritingSignature extends Signature {
          this.doUnparse(originalNode, transformer, writer);
       }
 
+      writer.setNeedWhitespace(true);
    }
 
    protected List<String> getOperatorsAsStringList(SqlCall originalNode, CallTransformer transformer, SqlWriter writer) {

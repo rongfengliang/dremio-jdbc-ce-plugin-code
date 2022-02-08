@@ -23,13 +23,18 @@ import org.slf4j.LoggerFactory;
 
 public abstract class TypeMapper {
    public static final String TO_DATE_NAME = "TO_DATE";
+   public static final String TO_CHAR_NAME = "TO_CHAR";
    public static final String DATE_TRUNC_NAME = "DATE_TRUNC";
    public static final String REGEXP_PREFIX = "REGEXP_";
    private static final Logger logger = LoggerFactory.getLogger(TypeMapper.class);
-   protected final boolean useDecimalToDoubleMapping;
+   private final boolean useDecimalToDoubleMapping;
 
    public TypeMapper(boolean useDecimalToDoubleMapping) {
       this.useDecimalToDoubleMapping = useDecimalToDoubleMapping;
+   }
+
+   protected boolean useDecimalToDoubleMapping() {
+      return this.useDecimalToDoubleMapping;
    }
 
    public final List<JdbcToFieldMapping> mapJdbcToArrowFields(TypeMapper.UnrecognizedTypeMarker unrecognizedTypeCallback, TypeMapper.AddPropertyCallback addColumnPropertyCallback, Connection connection, String catalog, String schema, String table, boolean mapSkippedColumnsAsNullType) throws SQLException {
@@ -167,14 +172,12 @@ public abstract class TypeMapper {
          case -16:
          case -15:
          case -9:
+         case -8:
          case -1:
          case 1:
          case 12:
          default:
             return CompleteType.VARCHAR;
-         case -8:
-         case -5:
-            return CompleteType.BIGINT;
          case -7:
          case 16:
             return CompleteType.BIT;
@@ -182,6 +185,8 @@ public abstract class TypeMapper {
          case 4:
          case 5:
             return CompleteType.INT;
+         case -5:
+            return CompleteType.BIGINT;
          case -4:
          case -3:
          case -2:
@@ -215,15 +220,27 @@ public abstract class TypeMapper {
       };
    }
 
-   public class TableIdentifier {
-      public final String catalog;
-      public final String schema;
-      public final String table;
+   public static class TableIdentifier {
+      private final String catalog;
+      private final String schema;
+      private final String table;
 
-      public TableIdentifier(String catalog, String schema, String table) {
+      TableIdentifier(String catalog, String schema, String table) {
          this.catalog = catalog;
          this.schema = schema;
          this.table = table;
+      }
+
+      public String getCatalog() {
+         return this.catalog;
+      }
+
+      public String getSchema() {
+         return this.schema;
+      }
+
+      public String getTable() {
+         return this.table;
       }
    }
 

@@ -6,9 +6,8 @@ import com.dremio.exec.catalog.StoragePluginId;
 import com.dremio.exec.planner.common.MoreRelOptUtil.ContainsRexVisitor;
 import com.dremio.exec.planner.logical.FilterRel;
 import com.dremio.exec.planner.logical.Rel;
-import com.dremio.exec.store.jdbc.legacy.JdbcDremioSqlDialect;
+import com.dremio.exec.store.jdbc.dialect.JdbcDremioSqlDialect;
 import com.dremio.exec.store.jdbc.rel.JdbcFilter;
-import java.util.Iterator;
 import java.util.concurrent.ExecutionException;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rel.RelNode;
@@ -54,26 +53,20 @@ public final class JdbcFilterRule extends JdbcUnaryConverterRule {
                JdbcConverterRule.RuleContext ruleContext = JdbcConverterRule.getRuleContext(pluginId, crel.getCluster().getRexBuilder());
                JdbcDremioSqlDialect dialect = getDialect(pluginId);
                boolean hasNoBitSupport = !dialect.supportsLiteral(CompleteType.BIT);
-               Iterator var6 = filter.getChildExps().iterator();
-
-               RexNode node;
-               do {
-                  if (!var6.hasNext()) {
+               if ((Boolean)ruleContext.getSupportedExpressions().get(filter.getCondition()) && (Boolean)ruleContext.getSubqueryHasSamePluginId().get(filter.getCondition())) {
+                  if (hasNoBitSupport && dialect.hasBooleanLiteralOrRexCallReturnsBoolean(filter.getCondition(), true)) {
+                     logger.debug("Boolean literal used in filter when dialect doesn't support booleans. Aborting pushdown.");
+                     return false;
+                  } else {
                      return true;
                   }
-
-                  node = (RexNode)var6.next();
-                  if (!(Boolean)ruleContext.getSupportedExpressions().get(node) || !(Boolean)ruleContext.getSubqueryHasSamePluginId().get(node)) {
-                     return false;
-                  }
-               } while(!hasNoBitSupport || !dialect.hasBooleanLiteralOrRexCallReturnsBoolean(node, true));
-
-               logger.debug("Boolean literal used in filter when dialect doesn't support booleans. Aborting pushdown.");
-               return false;
+               } else {
+                  return false;
+               }
             }
          }
-      } catch (ExecutionException var8) {
-         throw new IllegalStateException("Failure while trying to evaluate pushdown.", var8);
+      } catch (ExecutionException var6) {
+         throw new IllegalStateException("Failure while trying to evaluate pushdown.", var6);
       }
    }
 }

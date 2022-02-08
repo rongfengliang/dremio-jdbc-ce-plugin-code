@@ -1,5 +1,6 @@
 package com.dremio.exec.store.jdbc.rules;
 
+import com.dremio.exec.planner.common.MoreRelOptUtil;
 import com.dremio.exec.store.jdbc.ColumnPropertyAccumulator;
 import com.dremio.exec.store.jdbc.rel.JdbcAggregate;
 import com.dremio.exec.store.jdbc.rel.JdbcJoin;
@@ -157,7 +158,7 @@ public final class UnpushableTypeVisitor extends RexVisitorImpl<Boolean> {
 
    public Boolean visitSubQuery(RexSubQuery subQuery) {
       UnpushableTypeVisitor visitor = new UnpushableTypeVisitor(subQuery.rel, this.columnProperties);
-      Iterator var3 = subQuery.rel.getChildExps().iterator();
+      Iterator var3 = MoreRelOptUtil.getChildExps(subQuery.rel).iterator();
 
       RexNode node;
       do {
@@ -209,7 +210,7 @@ public final class UnpushableTypeVisitor extends RexVisitorImpl<Boolean> {
             }
          } else {
             SingleRel singleRel = (SingleRel)node;
-            this.hasUnpushableTypes |= UnpushableTypeVisitor.hasUnpushableTypes(singleRel.getInput(), singleRel.getChildExps(), () -> {
+            this.hasUnpushableTypes |= UnpushableTypeVisitor.hasUnpushableTypes(singleRel.getInput(), MoreRelOptUtil.getChildExps(singleRel), () -> {
                return this.columnProperties;
             });
          }

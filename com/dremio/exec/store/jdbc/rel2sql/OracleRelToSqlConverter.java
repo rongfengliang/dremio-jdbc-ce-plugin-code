@@ -7,8 +7,8 @@ import com.dremio.common.rel2sql.DremioRelToSqlConverter.DremioContext;
 import com.dremio.common.rel2sql.DremioRelToSqlConverter.Result;
 import com.dremio.common.rel2sql.SqlImplementor.Clause;
 import com.dremio.common.rel2sql.SqlImplementor.Context;
+import com.dremio.exec.store.jdbc.dialect.JdbcDremioSqlDialect;
 import com.dremio.exec.store.jdbc.dialect.OracleDialect;
-import com.dremio.exec.store.jdbc.legacy.JdbcDremioSqlDialect;
 import com.dremio.exec.store.jdbc.rel.JdbcProject;
 import com.dremio.exec.store.jdbc.rel.JdbcSort;
 import com.google.common.collect.ImmutableList;
@@ -61,7 +61,13 @@ public class OracleRelToSqlConverter extends JdbcDremioRelToSqlConverter {
 
    public Result visit(Filter e) {
       Result x = (Result)this.visitChild(0, e.getInput());
-      Builder builder = x.builder(e, new Clause[]{Clause.WHERE});
+      Builder builder;
+      if (this.hasWindowFunction(e, x)) {
+         builder = x.builder(e, new Clause[]{Clause.SELECT}).result().builder(e, new Clause[]{Clause.WHERE});
+      } else {
+         builder = x.builder(e, new Clause[]{Clause.WHERE});
+      }
+
       builder.setWhere(builder.context.toSql((RexProgram)null, e.getCondition()));
       return builder.result();
    }

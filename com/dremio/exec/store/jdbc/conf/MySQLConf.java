@@ -3,6 +3,7 @@ package com.dremio.exec.store.jdbc.conf;
 import com.dremio.exec.catalog.conf.AuthenticationType;
 import com.dremio.exec.catalog.conf.DisplayMetadata;
 import com.dremio.exec.catalog.conf.NotMetadataImpacting;
+import com.dremio.exec.catalog.conf.Property;
 import com.dremio.exec.catalog.conf.Secret;
 import com.dremio.exec.catalog.conf.SourceType;
 import com.dremio.exec.store.jdbc.CloseableDataSource;
@@ -10,12 +11,9 @@ import com.dremio.exec.store.jdbc.DataSources;
 import com.dremio.exec.store.jdbc.JdbcPluginConfig;
 import com.dremio.exec.store.jdbc.JdbcPluginConfig.Builder;
 import com.dremio.exec.store.jdbc.dialect.MySQLDialect;
-import com.dremio.exec.store.jdbc.dialect.arp.ArpDialect;
-import com.dremio.exec.store.jdbc.legacy.LegacyCapableJdbcConf;
-import com.dremio.exec.store.jdbc.legacy.LegacyDialect;
-import com.dremio.exec.store.jdbc.legacy.MySQLLegacyDialect;
 import com.dremio.options.OptionManager;
 import com.dremio.security.CredentialsService;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
@@ -23,6 +21,7 @@ import io.protostuff.Tag;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.SQLException;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import javax.sql.ConnectionPoolDataSource;
@@ -34,9 +33,10 @@ import org.apache.commons.lang3.reflect.MethodUtils;
 @SourceType(
    value = "MYSQL",
    label = "MySQL",
-   uiConfig = "mysql-layout.json"
+   uiConfig = "mysql-layout.json",
+   externalQuerySupported = true
 )
-public class MySQLConf extends LegacyCapableJdbcConf<MySQLConf> {
+public class MySQLConf extends AbstractArpConf<MySQLConf> {
    private static final String ARP_FILENAME = "arp/implementation/mysql-arp.yaml";
    private static final MySQLDialect MYSQL_ARP_DIALECT = (MySQLDialect)AbstractArpConf.loadArpFile("arp/implementation/mysql-arp.yaml", MySQLDialect::new);
    private static final String POOLED_DATASOURCE = "org.mariadb.jdbc.MariaDbDataSource";
@@ -77,17 +77,36 @@ public class MySQLConf extends LegacyCapableJdbcConf<MySQLConf> {
    @DisplayMetadata(
       label = "Enable legacy dialect"
    )
+   @JsonIgnore
    public boolean useLegacyDialect = false;
    @Tag(10)
    @NotMetadataImpacting
-   @DisplayMetadata(
-      label = "Grant External Query access (Warning: External Query allows users with the Can Query privilege on this source to query any table or view within the source)"
-   )
+   @JsonIgnore
    public boolean enableExternalQuery = false;
+   @Tag(11)
+   public List<Property> propertyList;
+   @Tag(12)
+   @DisplayMetadata(
+      label = "Maximum idle connections"
+   )
+   @NotMetadataImpacting
+   public int maxIdleConns = 8;
+   @Tag(13)
+   @DisplayMetadata(
+      label = "Connection idle time (s)"
+   )
+   @NotMetadataImpacting
+   public int idleTimeSec = 60;
+   @Tag(14)
+   @DisplayMetadata(
+      label = "Query timeout (s)"
+   )
+   @NotMetadataImpacting
+   public int queryTimeoutSec = 0;
 
    @VisibleForTesting
    public JdbcPluginConfig buildPluginConfig(Builder configBuilder, CredentialsService credentialsService, OptionManager optionManager) {
-      return configBuilder.withDialect(this.getDialect()).withDatasourceFactory(this::newDataSource).withShowOnlyConnDatabase(false).withFetchSize(this.fetchSize).withAllowExternalQuery(this.supportsExternalQuery(this.enableExternalQuery)).build();
+      return configBuilder.withDialect(this.getDialect()).withDatasourceFactory(this::newDataSource).withShowOnlyConnDatabase(false).withFetchSize(this.fetchSize).withQueryTimeout(this.queryTimeoutSec).build();
    }
 
    private CloseableDataSource newDataSource() throws SQLException {
@@ -122,7 +141,7 @@ public class MySQLConf extends LegacyCapableJdbcConf<MySQLConf> {
          }
 
          MethodUtils.invokeExactMethod(source, "setProperties", new Object[]{encodedProperties});
-         return DataSources.newSharedDataSource(source);
+         return DataSources.newSharedDataSource(source, this.maxIdleConns, (long)this.idleTimeSec);
       } catch (InvocationTargetException var7) {
          Throwable cause = var7.getCause();
          if (cause != null) {
@@ -135,33 +154,23 @@ public class MySQLConf extends LegacyCapableJdbcConf<MySQLConf> {
       }
    }
 
-   private String toJdbcConnectionString() {
+   @VisibleForTesting
+   String toJdbcConnectionString() {
       String hostname = (String)Preconditions.checkNotNull(this.hostname, "missing hostname");
       String portAsString = (String)Preconditions.checkNotNull(this.port, "missing port");
       int port = Integer.parseInt(portAsString);
-      return String.format("jdbc:mariadb://%s:%d", hostname, port);
+      String url = String.format("jdbc:mariadb://%s:%d", hostname, port);
+      return null != this.propertyList && !this.propertyList.isEmpty() ? url + (String)this.propertyList.stream().map((p) -> {
+         return p.name + "=" + p.value;
+      }).collect(Collectors.joining("&", "?", "")) : url;
    }
 
-   protected LegacyDialect getLegacyDialect() {
-      return MySQLLegacyDialect.INSTANCE;
-   }
-
-   protected ArpDialect getArpDialect() {
+   public MySQLDialect getDialect() {
       return MYSQL_ARP_DIALECT;
    }
 
    @VisibleForTesting
    public static MySQLDialect getDialectSingleton() {
       return MYSQL_ARP_DIALECT;
-   }
-
-   protected boolean getLegacyFlag() {
-      return this.useLegacyDialect;
-   }
-
-   public static MySQLConf newMessage() {
-      MySQLConf result = new MySQLConf();
-      result.useLegacyDialect = true;
-      return result;
    }
 }

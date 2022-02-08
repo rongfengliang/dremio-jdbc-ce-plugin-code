@@ -2,7 +2,7 @@ package com.dremio.exec.store.jdbc.rel2sql;
 
 import com.dremio.common.rel2sql.DremioRelToSqlConverter.Builder;
 import com.dremio.common.rel2sql.DremioRelToSqlConverter.DremioContext;
-import com.dremio.exec.store.jdbc.legacy.JdbcDremioSqlDialect;
+import com.dremio.exec.store.jdbc.dialect.JdbcDremioSqlDialect;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -36,7 +36,7 @@ public class RedshiftRelToSqlConverter extends JdbcDremioRelToSqlConverter {
       String name = (String)rowType.getFieldNames().get(selectList.size());
       String alias = SqlValidatorUtil.getAlias((SqlNode)node, -1);
       if (alias == null || !alias.equals(name)) {
-         if (name.equals("*")) {
+         if ("*".equals(name)) {
             node = SqlStdOperatorTable.AS.createCall(POS, new SqlNode[]{(SqlNode)node, new SqlIdentifier(SqlUtil.deriveAliasFromOrdinal(selectList.size()), POS)});
          } else {
             node = SqlStdOperatorTable.AS.createCall(POS, new SqlNode[]{(SqlNode)node, new SqlIdentifier(name, POS)});

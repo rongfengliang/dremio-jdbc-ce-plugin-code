@@ -8,7 +8,6 @@ import com.dremio.exec.planner.logical.Rel;
 import com.dremio.exec.store.TableMetadata;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import java.util.Objects;
 import org.apache.calcite.plan.CopyWithCluster;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptTable;
@@ -40,21 +39,6 @@ public class JdbcTableScan extends ScanRelBase implements JdbcRelImpl, Rel {
 
    public boolean isDirectNamespaceDescendent() {
       return this.directNamespaceDescendent;
-   }
-
-   public boolean equals(Object o) {
-      if (this == o) {
-         return true;
-      } else if (o != null && this.getClass() == o.getClass()) {
-         JdbcTableScan that = (JdbcTableScan)o;
-         return Objects.equals(this.rowType, that.rowType) && Objects.equals(this.getConvention(), that.getConvention());
-      } else {
-         return false;
-      }
-   }
-
-   public int hashCode() {
-      return Objects.hash(new Object[]{this.rowType, this.getConvention()});
    }
 
    public SqlIdentifier getTableName() {

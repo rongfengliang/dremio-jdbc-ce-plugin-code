@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.TimeZone;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlIdentifier;
@@ -23,35 +22,24 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.SqlCollation.Coercibility;
-import org.apache.calcite.sql.dialect.PostgresqlSqlDialect;
 import org.apache.calcite.sql.parser.SqlParserPos;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class PostgreSQLDialect extends ArpDialect {
    private static final String DOUBLE_PRECISION = "DOUBLE PRECISION";
    private static final Integer MAX_IDENTIFIER_LENGTH = 63;
    private static final boolean DISABLE_PUSH_COLLATION = Boolean.getBoolean("dremio.jdbc.postgres.push-collation.disable");
-   private final SqlCollation POSTGRES_BINARY_COLLATION;
+   private static final SqlCollation POSTGRES_BINARY_COLLATION;
    private final ArpTypeMapper typeMapper;
 
    public PostgreSQLDialect(ArpYaml yaml) {
       super(yaml);
-      this.POSTGRES_BINARY_COLLATION = new SqlCollation(Coercibility.NONE) {
-         private static final long serialVersionUID = 1L;
-
-         public void unparse(SqlWriter writer, int leftPrec, int rightPrec) {
-            writer.keyword("COLLATE");
-            writer.keyword("\"C\"");
-         }
-      };
       this.typeMapper = new PostgreSQLDialect.PostgreSQLTypeMapper(yaml);
    }
 
    protected boolean requiresAliasForFromItems() {
       return true;
-   }
-
-   public boolean supportsNestedAggregations() {
-      return false;
    }
 
    public boolean supportsRegexString(String regex) {
@@ -131,16 +119,7 @@ public final class PostgreSQLDialect extends ArpDialect {
       return true;
    }
 
-   public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
-      if (call.getKind() == SqlKind.FLOOR && call.operandCount() == 2) {
-         PostgresqlSqlDialect.DEFAULT.unparseCall(writer, call, leftPrec, rightPrec);
-      } else {
-         super.unparseCall(writer, call, leftPrec, rightPrec);
-      }
-
-   }
-
-   public TypeMapper getDataTypeMapper() {
+   public TypeMapper getDataTypeMapper(JdbcPluginConfig config) {
       return this.typeMapper;
    }
 
@@ -185,11 +164,22 @@ public final class PostgreSQLDialect extends ArpDialect {
          switch(kind) {
          case LITERAL:
          case IDENTIFIER:
-            return this.POSTGRES_BINARY_COLLATION;
+            return POSTGRES_BINARY_COLLATION;
          default:
             return null;
          }
       }
+   }
+
+   static {
+      POSTGRES_BINARY_COLLATION = new SqlCollation(Coercibility.NONE) {
+         private static final long serialVersionUID = 1L;
+
+         public void unparse(SqlWriter writer) {
+            writer.keyword("COLLATE");
+            writer.keyword("\"C\"");
+         }
+      };
    }
 
    private static class PostgreSQLTypeMapper extends ArpTypeMapper {
@@ -221,19 +211,26 @@ public final class PostgreSQLDialect extends ArpDialect {
             }
          }
 
-         return new TableSourceTypeDescriptor(columnName, sourceJdbcType, typeString, table.catalog, table.schema, table.catalog, colIndex, precision, scale);
+         return new TableSourceTypeDescriptor(columnName, sourceJdbcType, typeString, table.getCatalog(), table.getSchema(), table.getCatalog(), colIndex, precision, scale);
       }
    }
 
-   public static class PGSchemaFetcher extends ArpDialect.ArpSchemaFetcher {
+   static class PGSchemaFetcher extends ArpDialect.ArpSchemaFetcher {
+      private static final Logger logger = LoggerFactory.getLogger(PostgreSQLDialect.PGSchemaFetcher.class);
+
       public PGSchemaFetcher(String query, JdbcPluginConfig config) {
          super(query, config);
       }
 
       protected long getRowCount(List<String> tablePath) {
-         String sql = MessageFormat.format("SELECT reltuples::bigint AS EstimatedCount\nFROM pg_class\nWHERE  oid = {0}::regclass", this.config.getDialect().quoteStringLiteral(PERIOD_JOINER.join(tablePath)));
+         String sql = MessageFormat.format("SELECT reltuples::bigint AS EstimatedCount\nFROM pg_class\nWHERE  oid = {0}::regclass", this.getConfig().getDialect().quoteStringLiteral(PERIOD_JOINER.join(tablePath)));
          Optional<Long> estimate = this.executeQueryAndGetFirstLong(sql);
-         return estimate.isPresent() && (Long)estimate.get() != 0L ? (Long)estimate.get() : super.getRowCount(tablePath);
+         if (estimate.isPresent() && (Long)estimate.get() != 0L) {
+            return (Long)estimate.get();
+         } else {
+            logger.debug("Row count estimate not detected for table {}. Retrying with count query.", this.getQuotedPath(tablePath));
+            return super.getRowCount(tablePath);
+         }
       }
    }
 }

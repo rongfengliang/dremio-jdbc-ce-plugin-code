@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class JoinOp {
    private final boolean enable;
-   protected final String rewrite;
+   private final String rewrite;
 
    @JsonCreator
    JoinOp(@JsonProperty("enable") boolean enable, @JsonProperty("rewrite") String rewrite) {

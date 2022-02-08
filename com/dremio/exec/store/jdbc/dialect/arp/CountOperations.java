@@ -35,7 +35,7 @@ public class CountOperations {
       }
    }
 
-   public static enum CountOperationType {
+   static enum CountOperationType {
       COUNT_STAR,
       COUNT,
       COUNT_MULTI,

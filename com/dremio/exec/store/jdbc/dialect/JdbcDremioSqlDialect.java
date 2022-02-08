@@ -1,11 +1,9 @@
-package com.dremio.exec.store.jdbc.legacy;
+package com.dremio.exec.store.jdbc.dialect;
 
 import com.dremio.exec.store.jdbc.AbstractDremioSqlDialect;
 import com.dremio.exec.store.jdbc.JdbcPluginConfig;
 import com.dremio.exec.store.jdbc.JdbcSchemaFetcher;
 import com.dremio.exec.store.jdbc.JdbcSchemaFetcherImpl;
-import com.dremio.exec.store.jdbc.dialect.AutomaticTypeMapper;
-import com.dremio.exec.store.jdbc.dialect.TypeMapper;
 import com.dremio.exec.store.jdbc.rel2sql.JdbcDremioRelToSqlConverter;
 import com.dremio.exec.store.jdbc.rel2sql.JdbcDremioRelToSqlConverterBase;
 import org.apache.calcite.config.NullCollation;
@@ -26,8 +24,12 @@ public class JdbcDremioSqlDialect extends AbstractDremioSqlDialect {
       return new JdbcSchemaFetcherImpl(config);
    }
 
-   public TypeMapper getDataTypeMapper() {
+   public TypeMapper getDataTypeMapper(JdbcPluginConfig config) {
       return AutomaticTypeMapper.INSTANCE;
+   }
+
+   public boolean supportsNullReturnType() {
+      return true;
    }
 
    static {

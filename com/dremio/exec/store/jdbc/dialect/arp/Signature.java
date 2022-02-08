@@ -10,8 +10,8 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlWriter;
 
 class Signature {
-   protected final List<CompleteType> args;
-   protected final CompleteType returnType;
+   private final List<CompleteType> args;
+   private final CompleteType returnType;
 
    Signature(String returnType, List<String> args) {
       this.returnType = Mapping.convertDremioTypeStringToCompleteType(returnType);
@@ -24,6 +24,14 @@ class Signature {
 
    boolean hasRewrite() {
       return false;
+   }
+
+   protected List<CompleteType> getArgs() {
+      return this.args;
+   }
+
+   protected CompleteType getReturnType() {
+      return this.returnType;
    }
 
    @JsonCreator
