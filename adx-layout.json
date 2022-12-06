@@ -1,0 +1,82 @@
+{
+  "sourceType": "ADX",
+  "metadataRefresh": {
+    "datasetDiscovery": true
+  },
+  "form": {
+    "tabs": [
+      {
+        "name": "General",
+        "isGeneral": true,
+        "sections": [
+          {
+            "name": "Connection",
+            "layout": "row",
+            "elements": [
+              {
+                "propName": "config.clusterUri",
+                "placeholder": "e.g.https://samplecluster.eastus2.kusto.windows.net",
+                "validate": {
+                  "isRequired": true
+                }
+              },
+              {
+                "propName": "config.tenantId",
+                "validate": {
+                  "isRequired": true
+                }
+              },
+              {
+                "propName": "config.database",
+                "validate": {
+                  "isRequired": true
+                }
+              }
+            ]
+          },
+          {
+            "name": "Authentication",
+            "elements": [
+              {
+                "propName": "config.appId",
+                "validate": {
+                  "isRequired": true
+                }
+              },
+              {
+                "propName": "config.appSecret",
+                "validate": {
+                  "isRequired": true
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Advanced Options",
+        "sections": [
+          {
+            "elements": [
+              {
+                "propName": "config.maxIdleConns",
+                "size": "half",
+                "tooltip": "Maximum number of idle connections to keep."
+              },
+              {
+                "propName": "config.idleTimeSec",
+                "size": "half",
+                "tooltip": "Idle time, in seconds, before a connection is considered for closure."
+              },
+              {
+                "propName": "config.queryTimeoutSec",
+                "size": "half",
+                "tooltip": "The timeout, in seconds, for query execution before it is canceled. Set to 0 for no timeout."
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

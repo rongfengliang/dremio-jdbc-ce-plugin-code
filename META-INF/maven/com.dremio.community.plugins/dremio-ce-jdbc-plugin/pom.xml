@@ -10,7 +10,7 @@
   <parent>
     <groupId>com.dremio.community.plugins</groupId>
     <artifactId>dremio-ce-jdbc-plugin-parent</artifactId>
-    <version>20.0.0-202201050826310141-8cc7162b</version>
+    <version>23.1.0-202211250136090978-a79618c7</version>
   </parent>
   
   <artifactId>dremio-ce-jdbc-plugin</artifactId>
@@ -20,7 +20,7 @@
     <derby.database.name>dremio_derby_test</derby.database.name>
     <mysql.database.name>dremio_mysql_test</mysql.database.name>
   </properties>
-  
+
   <dependencies>
     <dependency>
       <groupId>com.dremio.sabot</groupId>
@@ -31,6 +31,7 @@
       <groupId>com.dremio.sabot</groupId>
       <artifactId>dremio-sabot-kernel</artifactId>
       <classifier>tests</classifier>
+      <type>test-jar</type>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
@@ -38,12 +39,8 @@
       <groupId>com.dremio</groupId>
       <artifactId>dremio-common</artifactId>
       <classifier>tests</classifier>
+      <type>test-jar</type>
       <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.hamcrest</groupId>
-      <artifactId>hamcrest-all</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -58,6 +55,7 @@
       <groupId>org.apache.calcite</groupId>
       <artifactId>calcite-core</artifactId>
       <classifier>tests</classifier>
+      <type>test-jar</type>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -102,6 +100,24 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>net.snowflake</groupId>
+      <artifactId>snowflake-jdbc</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.microsoft.sqlserver</groupId>
+      <artifactId>mssql-jdbc</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.microsoft.azure</groupId>
+      <artifactId>adal4j</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.dremio.client</groupId>
+      <artifactId>dremio-client-jdbc</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>com.dremio</groupId>
       <artifactId>dremio-connector</artifactId>
     </dependency>
@@ -138,20 +154,7 @@
         </executions>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-checkstyle-plugin</artifactId>
-      </plugin>
-      <plugin>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <configuration>
-          <forkCount>${forkCount}</forkCount>
-          <systemPropertyVariables>
-          </systemPropertyVariables>
-        </configuration>
-      </plugin>
-      <plugin>
         <!-- Because the JDBC tests are somewhat heavyweight, we only run them in the 'verify' phase -->
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
         <configuration>
           <!-- these tests require forkCount = 1, if > 1, will fail sporadically -->
@@ -217,7 +220,7 @@
                   <!-- This will download a MySQL distribution and use it to run tests against -->
                   <groupId>com.jcabi</groupId>
                   <artifactId>mysql-dist</artifactId>
-                  <version>5.6.14</version>
+                  <version>${mysql.dist.version}</version>
                   <classifier>${mysql.classifier}</classifier>
                   <type>zip</type>
                   <overWrite>false</overWrite>

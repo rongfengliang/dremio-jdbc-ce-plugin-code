@@ -1,5 +1,5 @@
 {
-  "sourceType": "SYNAPSE",
+  "sourceType": "SNOWFLAKE",
   "metadataRefresh": {
     "datasetDiscovery": true
   },
@@ -15,35 +15,45 @@
             "elements": [
               {
                 "propName": "config.hostname",
-                "placeholder": "e.g.123.123.123.123",
-                "size": "half",
                 "validate": {
                   "isRequired": true
                 }
-              },
-              {
-                "propName": "config.port",
-                "size": "half"
               },
               {
                 "propName": "config.database",
-                "validate": {
-                  "isRequired": true
-                }
+                "tooltip": "Specifies the default database to use once connected. This action is not supported via Connection Properties."
+              },
+              {
+                "propName": "config.role",
+                "tooltip": "Specifies the default access control role to use in the Snowflake session initiated by the driver."
+              },
+              {
+                "propName": "config.schema",
+                "tooltip": "Specifies the default schema to use for the specified database once connected."
+              },
+              {
+                "propName": "config.warehouse",
+                "tooltip": "Specifies the virtual warehouse to use once connected."
               }
             ]
           },
           {
             "name": "Authentication",
+            "layout": "row",
             "elements": [
               {
-                "propName": "config.authenticationType"
+                "propName": "config.username",
+                "validate": {
+                  "isRequired": true
+                }
+              },
+              {
+                "propName": "config.password",
+                "validate": {
+                  "isRequired": true
+                }
               }
             ]
-          },
-          {
-            "propName": "config.useSsl",
-            "tooltip": "Encryption validation mode can be customized under Advanced Options > Encryption"
           }
         ]
       },
@@ -52,18 +62,6 @@
         "sections": [
           {
             "elements": [
-              {
-                "propName": "config.showOnlyConnectionDatabase"
-              },
-              {
-                "propName": "config.fetchSize",
-                "size": "half",
-                "tooltip": "Number of records to fetch at once.",
-                "help": {
-                  "position": "bottom",
-                  "text": "Set to 0 to have Dremio automatically decide."
-                }
-              },
               {
                 "propName": "config.maxIdleConns",
                 "size": "half",
@@ -78,25 +76,6 @@
                 "propName": "config.queryTimeoutSec",
                 "size": "half",
                 "tooltip": "The timeout, in seconds, for query execution before it is canceled. Set to 0 for no timeout."
-              },
-              {
-                "propName": "config.enableExternalQuery"
-              }
-            ]
-          },
-          {
-            "name": "Encryption",
-            "elements": [
-              {
-                "uiType": "check_enabled_container",
-                "propName": "config.enableServerVerification",
-                "checkValue": true,
-                "tooltip": "Verify Azure Synapse Analytics instance when using encrypted connections.",
-                "container": {
-                  "propName": "config.hostnameOverride",
-                  "placeholder": "eg my.azuresynapse.com",
-                  "tooltip": "Use this field to specify a hostname in the SSL certificate that differs from the server name. Leave this field blank if the hostname in the certificate matches the server name."
-                }
               }
             ]
           },
